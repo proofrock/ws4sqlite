@@ -41,45 +41,43 @@ Obtaining an answer of
 
 # Features
 
-- A **single executable file** (it's written in Go);
-- Can load **several databases** at once, for convenience;
-- **Batching** of multiple values set for a single statement;
-- All queries of a call are executed in a **transaction**;
-- For each query/statement, specify if a failure should rollback the whole transaction, or the failure is **limited** to that query;
-- "**Stored Statements**": define SQL in the server, and call it with a key from the client;
-- **CORS** mode, configurable per-db;
-- **Maintenance** scheduling (VACUUM and backups), also configurable per-db;
-- Builtin **encryption** of fields, given a symmetric key;
-- Supports **in-memory DBs**;
-- Allows to provide **initialization statements** to execute when a DB is created;
-- **WAL** mode enabled by default, can be disabled;
+[Docs](https://germ.gitbook.io/ws4sqlite/) and a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial).
+
+- A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (it's written in Go);
+- Can load [**several databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) at once, for convenience;
+- [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple values set for a single statement;
+- All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);
+- For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sqlite/documentation/errors#managed-errors) to that query;
+- "[**Stored Statements**](https://germ.gitbook.io/ws4sqlite/documentation/stored-statements)": define SQL in the server, and call it with a key from the client;
+- [**CORS**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#corsorigin) mode, configurable per-db;
+- [**Maintenance**](https://germ.gitbook.io/ws4sqlite/documentation/maintenance) scheduling (VACUUM and backups), also configurable per-db;
+- Builtin [**encryption**](https://germ.gitbook.io/ws4sqlite/documentation/encryption) of fields, given a symmetric key;
+- Supports [**in-memory DBs**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#path);
+- Allows to provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
+- [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
 - Very fast (benchmarks coming up!);
 - Compact codebase (< 800 lines of code);
 - Comprehensive test suite (`cd src; go test -v`);
-- **[Docker image](https://hub.docker.com/r/germanorizzo/ws4sqlite)** is available, both for amd64 and for arm (32).
+- [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker) are available, both for amd64 and arm32.
 
 # Security Features
 
-- A database can be opened in **read-only mode** (only queries will be allowed);
-- **Authentication** can be configured
+- A database can be opened in [**read-only mode**](https://germ.gitbook.io/ws4sqlite/security#read-only-databases) (only queries will be allowed);
+- [**Authentication**](https://germ.gitbook.io/ws4sqlite/security#authentication) can be configured
   - on the client, either using HTTP Basic Authentication or specifying the credentials in the request;
   - on the server, either by specifying credentials (also with hashed passwords) or providing a query to look them up in the db itself;
-- It's possible to enforce using **only stored statements**, to avoid some forms of SQL injection and receiving SQL from the client altogether;
-- **CORS Allowed Origin** can be configured and enforced;
-- It's possible to **Bind** to a network interface, to limit access.
+- It's possible to enforce using [**only stored statements**](https://germ.gitbook.io/ws4sqlite/security#stored-statements-to-prevent-sql-injection), to avoid some forms of SQL injection and receiving SQL from the client altogether;
+- [**CORS Allowed Origin**](https://germ.gitbook.io/ws4sqlite/security#cors-allowed-origin) can be configured and enforced;
+- It's possible to [**bind**](https://germ.gitbook.io/ws4sqlite/security#binding-to-a-network-interface) to a network interface, to limit access.
 
 # Design Choices
 
 Some deliberate choices have been made:
 
 - Very thin layer over SQLite. Errors and type translation, for example, are those provided by the SQLite driver;
-- Doesn't include HTTPS, as this can be done easily (and much more securely) with a reverse proxy;
+- Doesn't include HTTPS, as this can be done easily (and much more securely) with a [reverse proxy](https://germ.gitbook.io/ws4sqlite/security#use-a-reverse-proxy-if-going-on-the-internet);
 - Same for HTTP compression or HTTP2: if you need to expose the service on the internet, you'll need a reverse proxy anyway;
 - Doesn't support SQLite extensions, to improve portability.
-
-# Tutorial & Documentation
-
-Like what you read? Please read the [docs](https://germ.gitbook.io/ws4sqlite/)!
 
 # Credits
 
