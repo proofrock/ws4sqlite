@@ -47,6 +47,7 @@ Obtaining an answer of
 [Docs](https://germ.gitbook.io/ws4sqlite/) and a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial). Client library for [Java/JDK](https://github.com/proofrock/ws4sqlite-client-jvm).
 
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (it's written in Go);
+- HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Can load [**several databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) at once, for convenience;
 - [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple values set for a single statement;
 - All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);
