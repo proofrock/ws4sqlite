@@ -38,7 +38,6 @@ const bkpTimeFormat = "060102-1504"
 var bkpTimeGlob = strings.Repeat("?", len(bkpTimeFormat))
 
 func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
-	mllog.Warn("Parsing for db ", id)
 	var bkpDir, bkpFile string
 	if mntCfg.DoBackup {
 		var err error

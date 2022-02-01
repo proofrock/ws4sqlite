@@ -282,7 +282,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 						db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
 						time.Sleep(2 * time.Second)
 						db.Mutex.Unlock()
-						mllog.Warnf("credentials not valid for user '%s'", user)
+						mllog.Errorf("credentials not valid for user '%s'", user)
 						return false
 					}
 					return true
