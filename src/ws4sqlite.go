@@ -487,17 +487,20 @@ func handler(c *fiber.Ctx) error {
 	}()
 
 	for i := range body.Transaction {
-		if body.Transaction[i].Query == "" && body.Transaction[i].Statement == "" {
-			ret.Results = reportError(errors.New("neither query nor statement specified"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-			continue
-		}
-
-		if body.Transaction[i].Query != "" && body.Transaction[i].Statement != "" {
-			ret.Results = reportError(errors.New("cannot specify both query and statement"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		if (body.Transaction[i].Query == "") == (body.Transaction[i].Statement == "") { // both null or both populated
+			ret.Results = reportError(errors.New("only one of query or statement must be provided"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
 			continue
 		}
 
 		hasResultSet := body.Transaction[i].Query != ""
+
+		if hasResultSet && body.Transaction[i].Encoder != nil {
+			ret.Results = reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		}
+
+		if !hasResultSet && body.Transaction[i].Decoder != nil {
+			ret.Results = reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		}
 
 		if !hasResultSet {
 			body.Transaction[i].Query = body.Transaction[i].Statement
