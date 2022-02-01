@@ -67,8 +67,8 @@ func errHandler(c *fiber.Ctx, err error) error {
 func main() {
 	mllog.StdOut("ws4sqlite ", version)
 
-	cfgDir := flag.String("cfgDir", ".", "Directory where to look for the config.yaml file (default: current dir).")
-	bindHost := flag.String("bindHost", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
+	cfgDir := flag.String("cfg-dir", ".", "Directory where to look for the config.yaml file (default: current dir).")
+	bindHost := flag.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
 	port := flag.Int("port", 12321, "Port for the web service (default: 12321).")
 	version := flag.Bool("version", false, "Display the version number")
 

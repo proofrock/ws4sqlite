@@ -6,4 +6,4 @@ COPY bin/ws4sqlite /
 EXPOSE 12321
 VOLUME /data
 
-ENTRYPOINT ["/ws4sqlite", "--cfgDir=/data"]
+ENTRYPOINT ["/ws4sqlite", "--cfg-dir=/data"]
