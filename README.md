@@ -1,8 +1,12 @@
 # 🌱 ws4sqlite
 
-**ws4sqlite** is a server-side application that, applied to one or more SQLite files, gives the possibility to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
+**ws4sqlite** is a server application that, applied to one or more SQLite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
 
 Possible use cases are the ones where remote access to a sqlite db is useful/needed, for example a data layer for a remote application, possibly serverless or even called from a web page (*after security considerations* of course).
+
+We are also building some client libraries that will abstract the "raw" JSON-based communication. See 
+[here](https://github.com/proofrock/ws4sqlite-client-jvm) for Java/JVM, [here](https://github.com/proofrock/ws4sqlite-client-go)
+for Go(lang); others will follow.
 
 As a quick example, after launching it on a file `mydatabase.db`, it's possible to make a POST call to `http://localhost:12321/mydatabase`, with the following body:
 
@@ -41,9 +45,10 @@ Obtaining an answer of
 
 # Features
 
-[Docs](https://germ.gitbook.io/ws4sqlite/) and a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial).
+[Docs](https://germ.gitbook.io/ws4sqlite/) and a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial). Client library for [Java/JDK](https://github.com/proofrock/ws4sqlite-client-jvm).
 
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (it's written in Go);
+- HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Can load [**several databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) at once, for convenience;
 - [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple values set for a single statement;
 - All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);

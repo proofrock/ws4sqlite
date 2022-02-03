@@ -3,7 +3,7 @@ module ws4sqlite
 go 1.17
 
 require (
-	github.com/gofiber/fiber/v2 v2.25.0
+	github.com/gofiber/fiber/v2 v2.26.0
 	github.com/lnquy/cron v1.1.1
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/mitchellh/go-homedir v1.1.0

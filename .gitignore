@@ -2,7 +2,7 @@ src/ws4sqlite
 test/
 bin/
 .vscode/
-Snippets
+/notes
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,macos,linux
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,visualstudiocode,macos,linux

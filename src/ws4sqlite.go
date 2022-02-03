@@ -42,7 +42,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.9.0"
+const version = "0.9.1"
 
 // Catches the panics and converts the argument in a struct that Fiber uses to
 // signal the error, setting the response code and the JSON that is actually returned
@@ -282,7 +282,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 						db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
 						time.Sleep(2 * time.Second)
 						db.Mutex.Unlock()
-						mllog.Warnf("credentials not valid for user '%s'", user)
+						mllog.Errorf("credentials not valid for user '%s'", user)
 						return false
 					}
 					return true
@@ -487,17 +487,20 @@ func handler(c *fiber.Ctx) error {
 	}()
 
 	for i := range body.Transaction {
-		if body.Transaction[i].Query == "" && body.Transaction[i].Statement == "" {
-			ret.Results = reportError(errors.New("neither query nor statement specified"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-			continue
-		}
-
-		if body.Transaction[i].Query != "" && body.Transaction[i].Statement != "" {
-			ret.Results = reportError(errors.New("cannot specify both query and statement"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		if (body.Transaction[i].Query == "") == (body.Transaction[i].Statement == "") { // both null or both populated
+			ret.Results = reportError(errors.New("only one of query or statement must be provided"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
 			continue
 		}
 
 		hasResultSet := body.Transaction[i].Query != ""
+
+		if hasResultSet && body.Transaction[i].Encoder != nil {
+			ret.Results = reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		}
+
+		if !hasResultSet && body.Transaction[i].Decoder != nil {
+			ret.Results = reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		}
 
 		if !hasResultSet {
 			body.Transaction[i].Query = body.Transaction[i].Statement
