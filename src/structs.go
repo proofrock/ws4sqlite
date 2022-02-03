@@ -26,7 +26,7 @@ import (
 // This is the ws4sqlite error type
 
 type wsError struct {
-	QueryIndex int    `json:"qryIdx"`
+	RequestIdx int    `json:"reqIdx"`
 	Msg        string `json:"error"`
 	Code       int    `json:"-"`
 }
@@ -35,8 +35,8 @@ func (m wsError) Error() string {
 	return m.Msg
 }
 
-func newWSError(qryIdx int, code int, msg string, elements ...interface{}) wsError {
-	return wsError{qryIdx, fmt.Sprintf(msg, elements...), code}
+func newWSError(reqIdx int, code int, msg string, elements ...interface{}) wsError {
+	return wsError{reqIdx, fmt.Sprintf(msg, elements...), code}
 }
 
 // These are for parsing the config file (from YAML)

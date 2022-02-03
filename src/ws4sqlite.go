@@ -345,9 +345,9 @@ func decrypt(decoder requestItemCrypto, results map[string]interface{}) error {
 
 // For a single query item, deals with a failure, determining if it must invalidate all of the transaction
 // or just report an error in the single query
-func reportError(err error, code int, idx int, noFail bool, results []responseItem) []responseItem {
+func reportError(err error, code int, reqIdx int, noFail bool, results []responseItem) []responseItem {
 	if !noFail {
-		panic(newWSError(idx, code, err.Error()))
+		panic(newWSError(reqIdx, code, err.Error()))
 	}
 	return append(results, ResItem4Error(capitalize(err.Error())))
 }
