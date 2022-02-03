@@ -32,7 +32,7 @@ func Shutdown() {
 }
 
 // call with basic auth support
-func callBA(databaseId string, req request, user, pass string, t *testing.T) (int, string, response) {
+func callBA(databaseId string, req request, user, password string, t *testing.T) (int, string, response) {
 	json_data, err := json.Marshal(req)
 	if err != nil {
 		t.Error(err)
@@ -44,7 +44,7 @@ func callBA(databaseId string, req request, user, pass string, t *testing.T) (in
 		t.Error(err)
 	}
 	if user != "" {
-		post.SetBasicAuth(user, pass)
+		post.SetBasicAuth(user, password)
 	}
 	post.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(post)

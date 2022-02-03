@@ -31,9 +31,9 @@ import (
 const authModeInline = "INLINE"
 const authModeHttp = "HTTP"
 
-func applyAuthCreds(db *db, user, pass string) error {
+func applyAuthCreds(db *db, user, password string) error {
 	if db.Auth.ByQuery != "" {
-		nameds := vals2nameds(map[string]interface{}{"user": user, "pass": pass})
+		nameds := vals2nameds(map[string]interface{}{"user": user, "password": password})
 		row := db.Db.QueryRow(db.Auth.ByQuery, nameds...)
 		var foo interface{}
 		if err := row.Scan(&foo); err == sql.ErrNoRows {
@@ -44,7 +44,7 @@ func applyAuthCreds(db *db, user, pass string) error {
 			return nil
 		}
 	} else {
-		passedSHA := sha256.Sum256([]byte(pass))
+		passedSHA := sha256.Sum256([]byte(password))
 		expectedSHA, ok := db.Auth.HashedCreds[user]
 		if !ok || !bytes.Equal(expectedSHA, passedSHA[:]) {
 			return errors.New("wrong credentials")
@@ -57,7 +57,7 @@ func applyAuth(db *db, req *request) error {
 	if req.Credentials == nil {
 		return errors.New("missing auth credentials")
 	}
-	return applyAuthCreds(db, req.Credentials.User, req.Credentials.Pass)
+	return applyAuthCreds(db, req.Credentials.User, req.Credentials.Password)
 }
 
 func parseAuth(db *db) {
@@ -71,8 +71,8 @@ func parseAuth(db *db) {
 	}
 
 	if auth.ByQuery != "" {
-		if !strings.Contains(auth.ByQuery, ":user") || !strings.Contains(auth.ByQuery, ":pass") {
-			mllog.Fatal("byQuery: sql must include :user and :pass named parameters")
+		if !strings.Contains(auth.ByQuery, ":user") || !strings.Contains(auth.ByQuery, ":password") {
+			mllog.Fatal("byQuery: sql must include :user and :password named parameters")
 		}
 		mllog.StdOut("  + Authentication enabled, with query")
 	} else {
@@ -82,17 +82,17 @@ func parseAuth(db *db) {
 				mllog.Fatal("no user for credential")
 			}
 			var bytes []byte
-			if (auth.ByCredentials[i].HashedPass == "") == (auth.ByCredentials[i].Pass == "") {
-				mllog.Fatal("one and only one of 'pass' and 'hashedPass' must be specified")
+			if (auth.ByCredentials[i].HashedPassword == "") == (auth.ByCredentials[i].Password == "") {
+				mllog.Fatal("one and only one of 'password' and 'hashedPassword' must be specified")
 			}
-			if auth.ByCredentials[i].HashedPass != "" {
+			if auth.ByCredentials[i].HashedPassword != "" {
 				var err error
-				bytes, err = hex.DecodeString(auth.ByCredentials[i].HashedPass)
+				bytes, err = hex.DecodeString(auth.ByCredentials[i].HashedPassword)
 				if err != nil || len(bytes) != 32 {
-					mllog.Fatalf("for db '%s', hashedPass doesn't seem to be SHA256/hex.", db.Id)
+					mllog.Fatalf("for db '%s', hashedPassword doesn't seem to be SHA256/hex.", db.Id)
 				}
 			} else {
-				bytes32 := sha256.Sum256([]byte(auth.ByCredentials[i].Pass))
+				bytes32 := sha256.Sum256([]byte(auth.ByCredentials[i].Password))
 				bytes = bytes32[:]
 			}
 			(*db).Auth.HashedCreds[auth.ByCredentials[i].User] = bytes

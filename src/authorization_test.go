@@ -32,12 +32,12 @@ func TestSetupAuthCreds(t *testing.T) {
 					Mode: "INLINE",
 					ByCredentials: []credentialsCfg{
 						{
-							User: "pietro",
-							Pass: "hey",
+							User:     "pietro",
+							Password: "hey",
 						},
 						{
-							User:       "paolo",
-							HashedPass: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
+							User:           "paolo",
+							HashedPassword: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
 						},
 					},
 				},
@@ -52,7 +52,7 @@ func TestSetupAuthCreds(t *testing.T) {
 				},
 				Auth: &authr{
 					Mode:    "inline", // check if case insensitive
-					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :pass",
+					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
 			},
 		},
@@ -65,8 +65,8 @@ func TestSetupAuthCreds(t *testing.T) {
 func TestNoAuthButAuthPassed(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "gigi",
-			Pass: "ciao",
+			User:     "gigi",
+			Password: "ciao",
 		},
 		Transaction: []requestItem{
 			{
@@ -120,8 +120,8 @@ func TestNoAuth2(t *testing.T) {
 func TestNoAuthWithCreds1(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "piero",
-			Pass: "hey",
+			User:     "piero",
+			Password: "hey",
 		},
 		Transaction: []requestItem{
 			{
@@ -141,8 +141,8 @@ func TestNoAuthWithCreds1(t *testing.T) {
 func TestNoAuthWithCreds2(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "paolo",
-			Pass: "hey",
+			User:     "paolo",
+			Password: "hey",
 		},
 		Transaction: []requestItem{
 			{
@@ -162,8 +162,8 @@ func TestNoAuthWithCreds2(t *testing.T) {
 func TestAuthWithCreds1(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "pietro",
-			Pass: "hey",
+			User:     "pietro",
+			Password: "hey",
 		},
 		Transaction: []requestItem{
 			{
@@ -183,8 +183,8 @@ func TestAuthWithCreds1(t *testing.T) {
 func TestAuthWithCreds2(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "paolo",
-			Pass: "ciao",
+			User:     "paolo",
+			Password: "ciao",
 		},
 		Transaction: []requestItem{
 			{
@@ -204,8 +204,8 @@ func TestAuthWithCreds2(t *testing.T) {
 func TestNoAuthWithQuery1(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "_piero",
-			Pass: "hey",
+			User:     "_piero",
+			Password: "hey",
 		},
 		Transaction: []requestItem{
 			{
@@ -225,8 +225,8 @@ func TestNoAuthWithQuery1(t *testing.T) {
 func TestNoAuthWithQuery2(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "_paolo",
-			Pass: "hey",
+			User:     "_paolo",
+			Password: "hey",
 		},
 		Transaction: []requestItem{
 			{
@@ -246,8 +246,8 @@ func TestNoAuthWithQuery2(t *testing.T) {
 func TestAuthWithQuery1(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "_pietro",
-			Pass: "hey",
+			User:     "_pietro",
+			Password: "hey",
 		},
 		Transaction: []requestItem{
 			{
@@ -267,8 +267,8 @@ func TestAuthWithQuery1(t *testing.T) {
 func TestAuthWithQuery2(t *testing.T) {
 	req := request{
 		Credentials: &credentials{
-			User: "_paolo",
-			Pass: "ciao",
+			User:     "_paolo",
+			Password: "ciao",
 		},
 		Transaction: []requestItem{
 			{
@@ -313,12 +313,12 @@ func TestBASetupAuthCreds(t *testing.T) {
 					Mode: "HTTP",
 					ByCredentials: []credentialsCfg{
 						{
-							User: "pietro",
-							Pass: "hey",
+							User:     "pietro",
+							Password: "hey",
 						},
 						{
-							User:       "paolo",
-							HashedPass: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
+							User:           "paolo",
+							HashedPassword: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
 						},
 					},
 				},
@@ -333,7 +333,7 @@ func TestBASetupAuthCreds(t *testing.T) {
 				},
 				Auth: &authr{
 					Mode:    "http", // check if case insensitive
-					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :pass",
+					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
 			},
 		},
