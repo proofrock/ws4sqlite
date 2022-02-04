@@ -43,7 +43,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.9.1"
+const version = "0.10.0rc1"
 
 // Catches the panics and converts the argument in a struct that Fiber uses to
 // signal the error, setting the response code and the JSON that is actually returned
