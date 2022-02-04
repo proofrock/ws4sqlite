@@ -1153,3 +1153,55 @@ func TestItemFieldsTeardown(t *testing.T) {
 	time.Sleep(time.Second)
 	Shutdown()
 }
+
+func TestUnicode(t *testing.T) {
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "test1",
+				Path: ":memory:",
+				InitStatements: []string{
+					"CREATE TABLE T (TXT TEXT)",
+				},
+			},
+		},
+	}
+
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	req1 := request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO T VALUES ('世界')",
+			},
+		},
+	}
+	req2 := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT TXT FROM T",
+			},
+		},
+	}
+
+	code, body, _ := call("test1", req1, t)
+	if code != 200 {
+		t.Error("INSERT failed", body)
+	}
+
+	code, body, res := call("test1", req2, t)
+	if code != 200 {
+		t.Error("SELECT failed", body)
+	}
+	if res.Results[0].ResultSet[0]["TXT"] != "世界" {
+		t.Error("Unicode extraction failed", body)
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}
