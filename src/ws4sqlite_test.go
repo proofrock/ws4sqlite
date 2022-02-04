@@ -734,6 +734,7 @@ func TestRO_MEM_IS(t *testing.T) {
 	}
 	success := true
 	mllog.ForFatal = func() { success = false }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -761,7 +762,7 @@ func Test_IS_Err(t *testing.T) {
 	}
 	success := true
 	mllog.ForFatal = func() { success = false }
-	mllog.ForFatal = func() { os.Exit(1) }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -786,7 +787,7 @@ func Test_DoubleId_Err(t *testing.T) {
 	}
 	success := true
 	mllog.ForFatal = func() { success = false }
-	mllog.ForFatal = func() { os.Exit(1) }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -805,7 +806,7 @@ func Test_DelWhenInitFails(t *testing.T) {
 	os.Remove("../test/test.db-wal")
 
 	mllog.ForFatal = func() {}
-	mllog.ForFatal = func() { os.Exit(1) }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -843,7 +844,7 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 	success := true
 
 	mllog.ForFatal = func() { success = false }
-	mllog.ForFatal = func() { os.Exit(1) }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
