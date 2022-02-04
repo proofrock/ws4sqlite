@@ -30,6 +30,7 @@ import (
 
 	"github.com/proofrock/crypgo"
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -61,7 +62,15 @@ func errHandler(c *fiber.Ctx, err error) error {
 		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
 	}
 
-	return c.Status(ret.Code).JSON(ret)
+	bytes, err := jettison.Marshal(ret)
+	if err != nil {
+		// FIXME endless recursion? Unlikely, if jettison does its job
+		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+	}
+
+	c.Response().Header.Add("Content-Type", "application/json")
+
+	return c.Status(ret.Code).Send(bytes)
 }
 
 func main() {
@@ -595,6 +604,14 @@ func handler(c *fiber.Ctx) error {
 		}
 	}
 
-	tainted = false
-	return c.JSON(ret)
+	bytes, err := jettison.Marshal(ret)
+	if err != nil {
+		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+	} else {
+		tainted = false
+	}
+
+	c.Response().Header.Add("Content-Type", "application/json")
+
+	return c.Send(bytes)
 }

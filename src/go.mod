@@ -10,6 +10,7 @@ require (
 	github.com/proofrock/crypgo v1.0.0
 	github.com/proofrock/go-mylittlelogger v0.2.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/wI2L/jettison v0.7.3
 	gopkg.in/yaml.v2 v2.4.0
 )
 

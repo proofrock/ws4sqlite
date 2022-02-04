@@ -88,10 +88,11 @@ Some deliberate choices have been made:
 
 Many thanks and all the credits to these awesome projects:
 
-- [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
-- [gofiber](https://github.com/gofiber/fiber) (MIT License);
-- [robfig's cron](https://github.com/robfig/cron) (MIT License);
 - [lnquy's cron](https://github.com/lnquy/cron) (MIT License);
+- [robfig's cron](https://github.com/robfig/cron) (MIT License);
+- [gofiber's fiber](https://github.com/gofiber/fiber) (MIT License);
 - [mitchellh's go-homedir](https://github.com/mitchellh/go-homedir) (MIT License);
+- [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
+- [wI2L's jettison](https://github.com/wI2L/jettison) (MIT License)
 - [DataDog's zstd](https://github.com/DataDog/zstd) (Simplified BSD license);
 - and of course, [Google Go](https://go.dev), [VS Code](https://code.visualstudio.com) and [CodeServer](https://github.com/coder/code-server)!
