@@ -8,7 +8,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/proofrock/crypgo v1.0.0
-	github.com/proofrock/go-mylittlelogger v0.2.0
+	github.com/proofrock/go-mylittlelogger v0.3.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wI2L/jettison v0.7.3
 	gopkg.in/yaml.v2 v2.4.0

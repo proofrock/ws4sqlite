@@ -15,6 +15,16 @@ import (
 
 const concurrency = 1024
 
+func TestMain(m *testing.M) {
+	println("Go...")
+	oldLevel := mllog.Level
+	mllog.Level = mllog.NOT_EVEN_STDERR
+	exitCode := m.Run()
+	mllog.Level = oldLevel
+	println("...finished")
+	os.Exit(exitCode)
+}
+
 func Shutdown() {
 	stopMaint()
 	if len(dbs) > 0 {
@@ -723,7 +733,7 @@ func TestRO_MEM_IS(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
+	mllog.ForFatal = func() { success = false }
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -750,8 +760,8 @@ func Test_IS_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() { success = false }
+	mllog.ForFatal = func() { os.Exit(1) }
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -775,8 +785,8 @@ func Test_DoubleId_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() { success = false }
+	mllog.ForFatal = func() { os.Exit(1) }
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -794,8 +804,8 @@ func Test_DelWhenInitFails(t *testing.T) {
 	os.Remove("../test/test.db-shm")
 	os.Remove("../test/test.db-wal")
 
-	mllog.Configure(mllog.Config{ForFatal: func() {}})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() {}
+	mllog.ForFatal = func() { os.Exit(1) }
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -832,8 +842,8 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 
 	success := true
 
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() { success = false }
+	mllog.ForFatal = func() { os.Exit(1) }
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
