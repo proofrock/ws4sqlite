@@ -77,6 +77,15 @@ func call(databaseId string, req request, t *testing.T) (int, string, response) 
 	return callBA(databaseId, req, "", "", t)
 }
 
+func mkRaw(mapp map[string]interface{}) map[string]json.RawMessage {
+	ret := make(map[string]json.RawMessage)
+	for k, v := range mapp {
+		bytes, _ := json.Marshal(v)
+		ret[k] = bytes
+	}
+	return ret
+}
+
 func TestSetup(t *testing.T) {
 	os.Remove("../test/test.db")
 
@@ -142,15 +151,6 @@ func TestFail(t *testing.T) {
 	if code != 500 {
 		t.Error("did succeed, but shouldn't")
 	}
-}
-
-func mkRaw(mapp map[string]interface{}) map[string]json.RawMessage {
-	ret := make(map[string]json.RawMessage)
-	for k, v := range mapp {
-		bytes, _ := json.Marshal(v)
-		ret[k] = bytes
-	}
-	return ret
 }
 
 func TestTx(t *testing.T) {
@@ -957,4 +957,199 @@ func TestTwoServesOneDb(t *testing.T) {
 	wg.Wait()
 
 	time.Sleep(time.Second)
+}
+
+// Test about the various field of a ResponseItem being null
+// when not actually involved
+
+func TestItemFieldsSetup(t *testing.T) {
+	os.Remove("../test/test.db")
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "test",
+				Path: ":memory:",
+				InitStatements: []string{
+					"CREATE TABLE T1 (ID INT PRIMARY KEY, VAL TEXT NOT NULL)",
+				},
+			},
+		},
+	}
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+}
+
+func TestItemFieldsEmptySelect(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT 1 WHERE 0 = 1",
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("did not succeed")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet == nil {
+		t.Error("select result is nil")
+	}
+
+	if resItem.Error != "" {
+		t.Error("error is not empty")
+	}
+
+	if resItem.RowsUpdated != nil {
+		t.Error("rowsUpdated is not nil")
+	}
+
+	if resItem.RowsUpdatedBatch != nil {
+		t.Error("rowsUpdatedBatch is not nil")
+	}
+}
+
+func TestItemFieldsInsert(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO T1 VALUES (1, 'a')",
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("did not succeed")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet != nil {
+		t.Error("select result is not nil")
+	}
+
+	if resItem.Error != "" {
+		t.Error("error is not empty")
+	}
+
+	if resItem.RowsUpdated == nil {
+		t.Error("rowsUpdated is nil")
+	}
+
+	if resItem.RowsUpdatedBatch != nil {
+		t.Error("rowsUpdatedBatch is not nil")
+	}
+}
+
+func TestItemFieldsInsertBatch(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO T1 VALUES (:ID, :VAL)",
+				ValuesBatch: []map[string]json.RawMessage{
+					mkRaw(map[string]interface{}{
+						"ID":  3,
+						"VAL": "THREE",
+					}),
+					mkRaw(map[string]interface{}{
+						"ID":  4,
+						"VAL": "FOUR",
+					})},
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("did not succeed")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet != nil {
+		t.Error("select result is not nil")
+	}
+
+	if resItem.Error != "" {
+		t.Error("error is not empty")
+	}
+
+	if resItem.RowsUpdated != nil {
+		t.Error("rowsUpdated is not nil")
+	}
+
+	if resItem.RowsUpdatedBatch == nil {
+		t.Error("rowsUpdatedBatch is nil")
+	}
+}
+
+func TestItemFieldsError(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query:  "A CLEARLY INVALID SQL",
+				NoFail: true,
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if res.Results[0].Success {
+		t.Error("did succeed, but it shoudln't have")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet != nil {
+		t.Error("select result is not nil")
+	}
+
+	if resItem.Error == "" {
+		t.Error("error is empty")
+	}
+
+	if resItem.RowsUpdated != nil {
+		t.Error("rowsUpdated is not nil")
+	}
+
+	if resItem.RowsUpdatedBatch != nil {
+		t.Error("rowsUpdatedBatch is not nil")
+	}
+}
+
+func TestItemFieldsTeardown(t *testing.T) {
+	time.Sleep(time.Second)
+	Shutdown()
 }

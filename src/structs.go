@@ -124,7 +124,7 @@ type responseItem struct {
 	Success          bool                     `json:"success"`
 	RowsUpdated      *int64                   `json:"rowsUpdated,omitempty"`
 	RowsUpdatedBatch []int64                  `json:"rowsUpdatedBatch,omitempty"`
-	ResultSet        []map[string]interface{} `json:"resultSet,omitempty"`
+	ResultSet        []map[string]interface{} `json:"resultSet,omitnil"` // omitnil is used by jettison
 	Error            string                   `json:"error,omitempty"`
 }
 
