@@ -7,7 +7,13 @@ Possible use cases are the ones where remote access to a sqlite db is useful/nee
 We are also building some client libraries that will abstract the "raw" JSON-based communication. See 
 [here](https://github.com/proofrock/ws4sqlite-client-jvm) for Java/JVM, [here](https://github.com/proofrock/ws4sqlite-client-go) for Go(lang); others will follow.
 
-As a quick example, after launching it on a file `mydatabase.db`, it's possible to make a POST call to `http://localhost:12321/mydatabase`, with the following body:
+As a quick example, after launching 
+
+```bash
+ws4sqlite --db mydatabase.db
+```
+
+It's possible to make a POST call to `http://localhost:12321/mydatabase`, with the following body:
 
 ```json
 {
@@ -48,7 +54,8 @@ Obtaining an answer of
 
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (it's written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
-- Can load [**several databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) at once, for convenience;
+- Directly call `ws4sqlite` on a database (as above) or specify a [configuration file](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file), allowing many more options;
+- Serving of [**multiple databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) at once, for convenience;
 - [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple values set for a single statement;
 - All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);
 - For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sqlite/documentation/errors#managed-errors) to that query;
@@ -60,7 +67,7 @@ Obtaining an answer of
 - Allows to provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
 - [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
 - [Quite fast](features/performances.md)!
-- Compact codebase (< 800 lines of code);
+- Compact codebase (~850 lines of code);
 - Comprehensive test suite (`cd src; go test -v`);
 - [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker) are available, both for amd64 and arm32.
 
