@@ -13,7 +13,7 @@ build:
 
 zbuild:
 	make build
-	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.10.0rc1-linux-`uname -m`.7z ws4sqlite
+	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.10.0-linux-`uname -m`.7z ws4sqlite
 
 build-mac:
 	make build-prepare
@@ -22,7 +22,7 @@ build-mac:
 
 zbuild-mac:
 	make build-mac
-	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.10.0rc1-macos-x86_64.7z ws4sqlite
+	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.10.0-macos-x86_64.7z ws4sqlite
 
 docker:
 	make build
@@ -31,19 +31,19 @@ docker:
 docker-publish:
 	make docker
 	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:latest
-	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.10.0rc1
+	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.10.0
 	sudo docker push germanorizzo/ws4sqlite:latest
-	sudo docker push germanorizzo/ws4sqlite:v0.10.0rc1
+	sudo docker push germanorizzo/ws4sqlite:v0.10.0
 	sudo docker rmi local_ws4sqlite:latest
 	sudo docker rmi germanorizzo/ws4sqlite:latest
-	sudo docker rmi germanorizzo/ws4sqlite:v0.10.0rc1
+	sudo docker rmi germanorizzo/ws4sqlite:v0.10.0
 
 docker-publish-arm:
 	make docker
 	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:latest-arm
-	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.10.0rc1-arm
+	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.10.0-arm
 	sudo docker push germanorizzo/ws4sqlite:latest-arm
-	sudo docker push germanorizzo/ws4sqlite:v0.10.0rc1-arm
+	sudo docker push germanorizzo/ws4sqlite:v0.10.0-arm
 	sudo docker rmi local_ws4sqlite:latest
 	sudo docker rmi germanorizzo/ws4sqlite:latest-arm
-	sudo docker rmi germanorizzo/ws4sqlite:v0.10.0rc1-arm
+	sudo docker rmi germanorizzo/ws4sqlite:v0.10.0-arm
