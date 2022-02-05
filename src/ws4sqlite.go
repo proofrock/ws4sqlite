@@ -30,6 +30,7 @@ import (
 
 	"github.com/proofrock/crypgo"
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -42,7 +43,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const version = "0.9.1"
+const version = "0.10.0"
 
 // Catches the panics and converts the argument in a struct that Fiber uses to
 // signal the error, setting the response code and the JSON that is actually returned
@@ -61,14 +62,22 @@ func errHandler(c *fiber.Ctx, err error) error {
 		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
 	}
 
-	return c.Status(ret.Code).JSON(ret)
+	bytes, err := jettison.Marshal(ret)
+	if err != nil {
+		// FIXME endless recursion? Unlikely, if jettison does its job
+		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+	}
+
+	c.Response().Header.Add("Content-Type", "application/json")
+
+	return c.Status(ret.Code).Send(bytes)
 }
 
 func main() {
 	mllog.StdOut("ws4sqlite ", version)
 
-	cfgDir := flag.String("cfgDir", ".", "Directory where to look for the config.yaml file (default: current dir).")
-	bindHost := flag.String("bindHost", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
+	cfgDir := flag.String("cfg-dir", ".", "Directory where to look for the config.yaml file (default: current dir).")
+	bindHost := flag.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
 	port := flag.Int("port", 12321, "Port for the web service (default: 12321).")
 	version := flag.Bool("version", false, "Display the version number")
 
@@ -277,8 +286,8 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 				Next: func(c *fiber.Ctx) bool {
 					return c.Path()[1:] != db.Id
 				},
-				Authorizer: func(user, pass string) bool {
-					if err := applyAuthCreds(&db, user, pass); err != nil {
+				Authorizer: func(user, password string) bool {
+					if err := applyAuthCreds(&db, user, password); err != nil {
 						db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
 						time.Sleep(2 * time.Second)
 						db.Mutex.Unlock()
@@ -302,24 +311,24 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 // Scans the values for a db request and encrypts them as needed
 func encrypt(encoder requestItemCrypto, values map[string]interface{}) error {
-	for i := range encoder.Columns {
-		sval, ok := values[encoder.Columns[i]].(string)
+	for i := range encoder.Fields {
+		sval, ok := values[encoder.Fields[i]].(string)
 		if !ok {
-			return errors.New("attempting to encrypt a non-string column")
+			return errors.New("attempting to encrypt a non-string field")
 		}
 		var eval string
 		var err error
 		if encoder.CompressionLevel < 1 {
-			eval, err = crypgo.Encrypt(encoder.Pwd, sval)
+			eval, err = crypgo.Encrypt(encoder.Password, sval)
 		} else if encoder.CompressionLevel < 20 {
-			eval, err = crypgo.CompressAndEncrypt(encoder.Pwd, sval, encoder.CompressionLevel)
+			eval, err = crypgo.CompressAndEncrypt(encoder.Password, sval, encoder.CompressionLevel)
 		} else {
 			return errors.New("compression level is in the range 0-19")
 		}
 		if err != nil {
 			return err
 		}
-		values[encoder.Columns[i]] = eval
+		values[encoder.Fields[i]] = eval
 	}
 	return nil
 }
@@ -329,25 +338,25 @@ func decrypt(decoder requestItemCrypto, results map[string]interface{}) error {
 	if decoder.CompressionLevel > 0 {
 		return errors.New("cannot specify compression level for decryption")
 	}
-	for i := range decoder.Columns {
-		sval, ok := results[decoder.Columns[i]].(string)
+	for i := range decoder.Fields {
+		sval, ok := results[decoder.Fields[i]].(string)
 		if !ok {
-			return errors.New("attempting to decrypt a non-string column")
+			return errors.New("attempting to decrypt a non-string field")
 		}
-		dval, err := crypgo.Decrypt(decoder.Pwd, sval)
+		dval, err := crypgo.Decrypt(decoder.Password, sval)
 		if err != nil {
 			return err
 		}
-		results[decoder.Columns[i]] = dval
+		results[decoder.Fields[i]] = dval
 	}
 	return nil
 }
 
 // For a single query item, deals with a failure, determining if it must invalidate all of the transaction
 // or just report an error in the single query
-func reportError(err error, code int, idx int, noFail bool, results []responseItem) []responseItem {
+func reportError(err error, code int, reqIdx int, noFail bool, results []responseItem) []responseItem {
 	if !noFail {
-		panic(newWSError(idx, code, err.Error()))
+		panic(newWSError(reqIdx, code, err.Error()))
 	}
 	return append(results, ResItem4Error(capitalize(err.Error())))
 }
@@ -361,13 +370,13 @@ func processWithResultSet(tx *sql.Tx, q string, decoder *requestItemCrypto, valu
 	}
 	defer rows.Close()
 
-	colNames, err := rows.Columns()
+	fields, err := rows.Columns()
 	if err != nil {
 		return ResItemEmpty(), err
 	}
 	for rows.Next() {
-		values := make([]interface{}, len(colNames))
-		scans := make([]interface{}, len(colNames))
+		values := make([]interface{}, len(fields))
+		scans := make([]interface{}, len(fields))
 		for i := range values {
 			scans[i] = &values[i]
 		}
@@ -377,7 +386,7 @@ func processWithResultSet(tx *sql.Tx, q string, decoder *requestItemCrypto, valu
 
 		toAdd := make(map[string]interface{})
 		for i := range values {
-			toAdd[colNames[i]] = values[i]
+			toAdd[fields[i]] = values[i]
 		}
 
 		if decoder != nil {
@@ -595,6 +604,14 @@ func handler(c *fiber.Ctx) error {
 		}
 	}
 
-	tainted = false
-	return c.JSON(ret)
+	bytes, err := jettison.Marshal(ret)
+	if err != nil {
+		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+	} else {
+		tainted = false
+	}
+
+	c.Response().Header.Add("Content-Type", "application/json")
+
+	return c.Send(bytes)
 }

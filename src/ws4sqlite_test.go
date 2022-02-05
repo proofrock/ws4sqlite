@@ -15,6 +15,16 @@ import (
 
 const concurrency = 1024
 
+func TestMain(m *testing.M) {
+	println("Go...")
+	oldLevel := mllog.Level
+	mllog.Level = mllog.NOT_EVEN_STDERR
+	exitCode := m.Run()
+	mllog.Level = oldLevel
+	println("...finished")
+	os.Exit(exitCode)
+}
+
 func Shutdown() {
 	stopMaint()
 	if len(dbs) > 0 {
@@ -32,7 +42,7 @@ func Shutdown() {
 }
 
 // call with basic auth support
-func callBA(databaseId string, req request, user, pass string, t *testing.T) (int, string, response) {
+func callBA(databaseId string, req request, user, password string, t *testing.T) (int, string, response) {
 	json_data, err := json.Marshal(req)
 	if err != nil {
 		t.Error(err)
@@ -44,7 +54,7 @@ func callBA(databaseId string, req request, user, pass string, t *testing.T) (in
 		t.Error(err)
 	}
 	if user != "" {
-		post.SetBasicAuth(user, pass)
+		post.SetBasicAuth(user, password)
 	}
 	post.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(post)
@@ -65,6 +75,15 @@ func callBA(databaseId string, req request, user, pass string, t *testing.T) (in
 
 func call(databaseId string, req request, t *testing.T) (int, string, response) {
 	return callBA(databaseId, req, "", "", t)
+}
+
+func mkRaw(mapp map[string]interface{}) map[string]json.RawMessage {
+	ret := make(map[string]json.RawMessage)
+	for k, v := range mapp {
+		bytes, _ := json.Marshal(v)
+		ret[k] = bytes
+	}
+	return ret
 }
 
 func TestSetup(t *testing.T) {
@@ -132,15 +151,6 @@ func TestFail(t *testing.T) {
 	if code != 500 {
 		t.Error("did succeed, but shouldn't")
 	}
-}
-
-func mkRaw(mapp map[string]interface{}) map[string]json.RawMessage {
-	ret := make(map[string]json.RawMessage)
-	for k, v := range mapp {
-		bytes, _ := json.Marshal(v)
-		ret[k] = bytes
-	}
-	return ret
 }
 
 func TestTx(t *testing.T) {
@@ -723,7 +733,8 @@ func TestRO_MEM_IS(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
+	mllog.ForFatal = func() { success = false }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -750,8 +761,8 @@ func Test_IS_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() { success = false }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -775,8 +786,8 @@ func Test_DoubleId_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() { success = false }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -794,8 +805,8 @@ func Test_DelWhenInitFails(t *testing.T) {
 	os.Remove("../test/test.db-shm")
 	os.Remove("../test/test.db-wal")
 
-	mllog.Configure(mllog.Config{ForFatal: func() {}})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() {}
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -832,8 +843,8 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 
 	success := true
 
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+	mllog.ForFatal = func() { success = false }
+	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -947,4 +958,251 @@ func TestTwoServesOneDb(t *testing.T) {
 	wg.Wait()
 
 	time.Sleep(time.Second)
+}
+
+// Test about the various field of a ResponseItem being null
+// when not actually involved
+
+func TestItemFieldsSetup(t *testing.T) {
+	os.Remove("../test/test.db")
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "test",
+				Path: ":memory:",
+				InitStatements: []string{
+					"CREATE TABLE T1 (ID INT PRIMARY KEY, VAL TEXT NOT NULL)",
+				},
+			},
+		},
+	}
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+}
+
+func TestItemFieldsEmptySelect(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT 1 WHERE 0 = 1",
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("did not succeed")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet == nil {
+		t.Error("select result is nil")
+	}
+
+	if resItem.Error != "" {
+		t.Error("error is not empty")
+	}
+
+	if resItem.RowsUpdated != nil {
+		t.Error("rowsUpdated is not nil")
+	}
+
+	if resItem.RowsUpdatedBatch != nil {
+		t.Error("rowsUpdatedBatch is not nil")
+	}
+}
+
+func TestItemFieldsInsert(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO T1 VALUES (1, 'a')",
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("did not succeed")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet != nil {
+		t.Error("select result is not nil")
+	}
+
+	if resItem.Error != "" {
+		t.Error("error is not empty")
+	}
+
+	if resItem.RowsUpdated == nil {
+		t.Error("rowsUpdated is nil")
+	}
+
+	if resItem.RowsUpdatedBatch != nil {
+		t.Error("rowsUpdatedBatch is not nil")
+	}
+}
+
+func TestItemFieldsInsertBatch(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO T1 VALUES (:ID, :VAL)",
+				ValuesBatch: []map[string]json.RawMessage{
+					mkRaw(map[string]interface{}{
+						"ID":  3,
+						"VAL": "THREE",
+					}),
+					mkRaw(map[string]interface{}{
+						"ID":  4,
+						"VAL": "FOUR",
+					})},
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("did not succeed")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet != nil {
+		t.Error("select result is not nil")
+	}
+
+	if resItem.Error != "" {
+		t.Error("error is not empty")
+	}
+
+	if resItem.RowsUpdated != nil {
+		t.Error("rowsUpdated is not nil")
+	}
+
+	if resItem.RowsUpdatedBatch == nil {
+		t.Error("rowsUpdatedBatch is nil")
+	}
+}
+
+func TestItemFieldsError(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query:  "A CLEARLY INVALID SQL",
+				NoFail: true,
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if res.Results[0].Success {
+		t.Error("did succeed, but it shoudln't have")
+	}
+
+	resItem := res.Results[0]
+
+	if resItem.ResultSet != nil {
+		t.Error("select result is not nil")
+	}
+
+	if resItem.Error == "" {
+		t.Error("error is empty")
+	}
+
+	if resItem.RowsUpdated != nil {
+		t.Error("rowsUpdated is not nil")
+	}
+
+	if resItem.RowsUpdatedBatch != nil {
+		t.Error("rowsUpdatedBatch is not nil")
+	}
+}
+
+func TestItemFieldsTeardown(t *testing.T) {
+	time.Sleep(time.Second)
+	Shutdown()
+}
+
+func TestUnicode(t *testing.T) {
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "test1",
+				Path: ":memory:",
+				InitStatements: []string{
+					"CREATE TABLE T (TXT TEXT)",
+				},
+			},
+		},
+	}
+
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	req1 := request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO T VALUES ('世界')",
+			},
+		},
+	}
+	req2 := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT TXT FROM T",
+			},
+		},
+	}
+
+	code, body, _ := call("test1", req1, t)
+	if code != 200 {
+		t.Error("INSERT failed", body)
+	}
+
+	code, body, res := call("test1", req2, t)
+	if code != 200 {
+		t.Error("SELECT failed", body)
+	}
+	if res.Results[0].ResultSet[0]["TXT"] != "世界" {
+		t.Error("Unicode extraction failed", body)
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
 }

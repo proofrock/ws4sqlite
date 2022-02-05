@@ -26,7 +26,7 @@ import (
 // This is the ws4sqlite error type
 
 type wsError struct {
-	QueryIndex int    `json:"qryIdx"`
+	RequestIdx int    `json:"reqIdx"`
 	Msg        string `json:"error"`
 	Code       int    `json:"-"`
 }
@@ -35,8 +35,8 @@ func (m wsError) Error() string {
 	return m.Msg
 }
 
-func newWSError(qryIdx int, code int, msg string, elements ...interface{}) wsError {
-	return wsError{qryIdx, fmt.Sprintf(msg, elements...), code}
+func newWSError(reqIdx int, code int, msg string, elements ...interface{}) wsError {
+	return wsError{reqIdx, fmt.Sprintf(msg, elements...), code}
 }
 
 // These are for parsing the config file (from YAML)
@@ -51,13 +51,13 @@ type maintenance struct {
 }
 
 type credentialsCfg struct {
-	User       string `yaml:"user"`
-	Pass       string `yaml:"pass"`
-	HashedPass string `yaml:"hashedPass"`
+	User           string `yaml:"user"`
+	Password       string `yaml:"password"`
+	HashedPassword string `yaml:"hashedPassword"`
 }
 
 type authr struct {
-	Mode          string           `yaml:"mode"` // authModeInline or authModeHttp
+	Mode          string           `yaml:"mode"` // 'INLINE' or 'HTTP'
 	ByQuery       string           `yaml:"byQuery"`
 	ByCredentials []credentialsCfg `yaml:"byCredentials"`
 	HashedCreds   map[string][]byte
@@ -79,9 +79,9 @@ type db struct {
 	Maintenance             *maintenance      `yaml:"maintenance"`
 	StoredStatement         []storedStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`
-	Db                      *sql.DB
-	StoredStatsMap          map[string]string
-	Mutex                   *sync.Mutex
+	Db                      *sql.DB           `yaml:"-"`
+	StoredStatsMap          map[string]string `yaml:"-"`
+	Mutex                   *sync.Mutex       `yaml:"-"`
 }
 
 type config struct {
@@ -93,13 +93,13 @@ type config struct {
 // These are for parsing the request (from JSON)
 
 type credentials struct {
-	User string `json:"user"`
-	Pass string `json:"pass"`
+	User     string `json:"user"`
+	Password string `json:"password"`
 }
 
 type requestItemCrypto struct {
-	Pwd              string   `json:"pwd"`
-	Columns          []string `json:"columns"`
+	Password         string   `json:"password"`
+	Fields           []string `json:"fields"`
 	CompressionLevel int      `json:"compressionLevel"`
 }
 
@@ -124,7 +124,7 @@ type responseItem struct {
 	Success          bool                     `json:"success"`
 	RowsUpdated      *int64                   `json:"rowsUpdated,omitempty"`
 	RowsUpdatedBatch []int64                  `json:"rowsUpdatedBatch,omitempty"`
-	ResultSet        []map[string]interface{} `json:"resultSet,omitempty"`
+	ResultSet        []map[string]interface{} `json:"resultSet,omitnil"` // omitnil is used by jettison
 	Error            string                   `json:"error,omitempty"`
 }
 

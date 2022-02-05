@@ -132,8 +132,10 @@ func TestMaintWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 	success := true
-	mllog.Configure(mllog.Config{ForFatal: func() { success = false }})
-	defer mllog.Configure(mllog.Config{ForFatal: func() { os.Exit(1) }})
+
+	oldForFatal := mllog.ForFatal
+	mllog.ForFatal = func() { success = false }
+	defer func() { mllog.ForFatal = oldForFatal }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
