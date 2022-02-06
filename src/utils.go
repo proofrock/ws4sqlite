@@ -37,14 +37,6 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// Cuts a string until before the beginning of a given substring
-func cutUntil(str string, until string) string {
-	if idx := strings.Index(str, until); idx >= 0 {
-		return str[0:idx]
-	}
-	return str
-}
-
 // Maps the raw JSON messages to a proper map, to manage unstructured JSON parsing;
 // see https://noamt.medium.com/using-gos-json-rawmessage-a2371a1c11b7
 func raw2vals(raw map[string]json.RawMessage) (map[string]interface{}, error) {

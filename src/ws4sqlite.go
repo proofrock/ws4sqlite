@@ -77,6 +77,17 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	// See the comments to errHandler() to see why.
 	app.Use(recover.New())
 
+	// Later on, for each file created there will be a defer to remove it, unless this
+	// guard is turned off
+	var filesToDelete []string
+	origWhenFatal := mllog.WhenFatal
+	mllog.WhenFatal = func() {
+		for _, ftd := range filesToDelete {
+			os.Remove(ftd)
+		}
+		origWhenFatal()
+	}
+
 	dbs = make(map[string]db)
 	for i := range cfg.Databases {
 		database := cfg.Databases[i]
@@ -104,7 +115,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		// Is the database new? Later I'll have to create the InitStatements
-		toCreate := isMemory || !fileExists(cutUntil(database.Path, "?"))
+		toCreate := isMemory || !fileExists(database.Path)
 
 		// Compose the Connection String to the SQLite db. Use options as defined
 		// by go-sqlite3 (https://github.com/mattn/go-sqlite3#connection-string)
@@ -118,15 +129,16 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			options = append(options, "_journal=WAL")
 		}
 		if len(options) > 0 {
-			initiator := "?"
-			if strings.Contains(connString, "?") {
-				// The url may already contain some parameters
-				initiator = "&"
-			}
-			connString = connString + initiator + strings.Join(options, "&")
+			connString = connString + "?" + strings.Join(options, "&")
 		}
 
 		mllog.StdOutf("- Serving database '%s' from %s", database.Id, connString)
+
+		if database.HasConfigFile {
+			mllog.StdOut("  + Parsed companion config file")
+		} else {
+			mllog.StdOut("  + No config file loaded, using defaults")
+		}
 
 		if database.ReadOnly && toCreate && len(database.InitStatements) > 0 {
 			mllog.Fatalf("'%s': a new db cannot be read only and have init statement", database.Id)
@@ -185,13 +197,18 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			mllog.Fatalf("accessing the database '%s': %s", database.Id, err.Error())
 		}
 
+		// If this cycle will fail, I will have to clean up the created files
+		if toCreate && !isMemory {
+			filesToDelete = append(filesToDelete, database.Path)
+		}
+
 		if toCreate && len(database.InitStatements) > 0 {
 			for j := range database.InitStatements {
 				if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
 					if !isMemory {
 						// I fail and abort, so remove the leftover file
 						// FIXME should I remove the files
-						os.Remove(cutUntil(connString, "?"))
+						os.Remove(database.Path)
 					}
 					mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
 				}
@@ -266,6 +283,8 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 		dbs[database.Id] = database
 	}
+
+	mllog.WhenFatal = origWhenFatal
 
 	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
 	startMaint()

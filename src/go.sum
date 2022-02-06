@@ -37,8 +37,8 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/proofrock/crypgo v1.0.0 h1:e+6D7iPoAPZRBSslYJnNHwsPKPxlLTSxeYhRWN2LxNk=
 github.com/proofrock/crypgo v1.0.0/go.mod h1:7RWnXdaFxGorG4GmWUSuFEThGqphM6aHIxIt/wJ+uOw=
-github.com/proofrock/go-mylittlelogger v0.3.1 h1:dg5Gzmeq8uUeBEGe0GC1zXVFDTRCGXcILLUGrlt5px4=
-github.com/proofrock/go-mylittlelogger v0.3.1/go.mod h1:XYdRJNt34V6ze+LNzFAGjWB27M1dfsYPoMcgCPBwugg=
+github.com/proofrock/go-mylittlelogger v0.3.2 h1:tTfBQ+0I3l03a5iv9h9tTIIgHUov9txqb6Iv09oSyNA=
+github.com/proofrock/go-mylittlelogger v0.3.2/go.mod h1:XYdRJNt34V6ze+LNzFAGjWB27M1dfsYPoMcgCPBwugg=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=
 github.com/robfig/cron/v3 v3.0.1/go.mod h1:eQICP3HwyT7UooqI/z+Ov+PtYAWygg1TEWWzGIFLtro=
 github.com/segmentio/encoding v0.2.19 h1:Kshkmoz080qvUtdtakR8Bjk2sIlLS8wSvijFMEHRGow=

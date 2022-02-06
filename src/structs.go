@@ -69,8 +69,9 @@ type storedStatement struct {
 }
 
 type db struct {
-	Id                      string            `yaml:"id"`
-	Path                    string            `yaml:"path"`
+	Id                      string
+	Path                    string
+	HasConfigFile           bool
 	Auth                    *authr            `yaml:"auth"`
 	ReadOnly                bool              `yaml:"readOnly"`
 	CORSOrigin              string            `yaml:"corsOrigin"`
@@ -79,15 +80,15 @@ type db struct {
 	Maintenance             *maintenance      `yaml:"maintenance"`
 	StoredStatement         []storedStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`
-	Db                      *sql.DB           `yaml:"-"`
-	StoredStatsMap          map[string]string `yaml:"-"`
-	Mutex                   *sync.Mutex       `yaml:"-"`
+	Db                      *sql.DB
+	StoredStatsMap          map[string]string
+	Mutex                   *sync.Mutex
 }
 
 type config struct {
-	Bindhost  string `yaml:"-"`
-	Port      int    `yaml:"-"`
-	Databases []db   `yaml:"databases"`
+	Bindhost  string
+	Port      int
+	Databases []db
 }
 
 // These are for parsing the request (from JSON)

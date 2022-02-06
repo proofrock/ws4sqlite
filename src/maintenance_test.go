@@ -133,9 +133,9 @@ func TestMaintWithReadOnly(t *testing.T) {
 	defer Shutdown()
 	success := true
 
-	oldForFatal := mllog.ForFatal
-	mllog.ForFatal = func() { success = false }
-	defer func() { mllog.ForFatal = oldForFatal }()
+	oldWhenFatal := mllog.WhenFatal
+	mllog.WhenFatal = func() { success = false }
+	defer func() { mllog.WhenFatal = oldWhenFatal }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
