@@ -23,10 +23,12 @@ import (
 	"strings"
 )
 
+// Uppercases (?) the first letter of a string
 func capitalize(str string) string {
 	return strings.ToUpper(str[0:1]) + str[1:]
 }
 
+// Does a file exist? No error returned.
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -35,6 +37,7 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+// Cuts a string until before the beginning of a given substring
 func cutUntil(str string, until string) string {
 	if idx := strings.Index(str, until); idx >= 0 {
 		return str[0:idx]

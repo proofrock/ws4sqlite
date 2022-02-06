@@ -28,6 +28,36 @@ import (
 	"github.com/wI2L/jettison"
 )
 
+// Catches the panics and converts the argument in a struct that Fiber uses to
+// signal the error, setting the response code and the JSON that is actually returned
+// with all its properties.
+//
+// It uses <panic> and the recover middleware to manage errors because it's the only
+// way I know to let a custom structure/error arrive here; the standard way can only
+// wrap a string.
+func errHandler(c *fiber.Ctx, err error) error {
+	var ret wsError
+
+	// Converts all the possible errors that arrive here to a wsError
+	if fe, ok := err.(*fiber.Error); ok {
+		ret = newWSError(-1, fe.Code, capitalize(fe.Error()))
+	} else if wse, ok := err.(wsError); ok {
+		ret = wse
+	} else {
+		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
+	}
+
+	bytes, err := jettison.Marshal(ret)
+	if err != nil {
+		// FIXME possible endless recursion? Unlikely, if jettison does its job
+		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+	}
+
+	c.Set("Content-Type", "application/json")
+
+	return c.Status(ret.Code).Send(bytes)
+}
+
 // Scans the values for a db request and encrypts them as needed
 func encrypt(encoder requestItemCrypto, values map[string]interface{}) error {
 	for i := range encoder.Fields {
@@ -72,35 +102,36 @@ func decrypt(decoder requestItemCrypto, results map[string]interface{}) error {
 }
 
 // For a single query item, deals with a failure, determining if it must invalidate all of the transaction
-// or just report an error in the single query
-func reportError(err error, code int, reqIdx int, noFail bool, results []responseItem) []responseItem {
+// or just report an error in the single query. In the former case, fails fast (panics), else it appends
+// the error to the response items, so the caller needs to return7continue
+func reportError(err error, code int, reqIdx int, noFail bool, results []responseItem) {
 	if !noFail {
 		panic(newWSError(reqIdx, code, err.Error()))
 	}
-	return append(results, ResItem4Error(capitalize(err.Error())))
+	results[reqIdx] = responseItem{false, nil, nil, nil, capitalize(err.Error())}
 }
 
-func processWithResultSet(tx *sql.Tx, q string, decoder *requestItemCrypto, values map[string]interface{}) (responseItem, error) {
+// Processes a query, and returns a suitable responseItem
+//
+// This method is needed to execute properly the defers.
+func processWithResultSet(tx *sql.Tx, query string, decoder *requestItemCrypto, values map[string]interface{}) (*responseItem, error) {
 	resultSet := make([]map[string]interface{}, 0)
 
-	rows, err := tx.Query(q, vals2nameds(values)...)
+	rows, err := tx.Query(query, vals2nameds(values)...)
 	if err != nil {
-		return ResItemEmpty(), err
+		return nil, err
 	}
 	defer rows.Close()
 
-	fields, err := rows.Columns()
-	if err != nil {
-		return ResItemEmpty(), err
-	}
+	fields, _ := rows.Columns() // I can ignore the error, rows aren't closed
 	for rows.Next() {
-		values := make([]interface{}, len(fields))
-		scans := make([]interface{}, len(fields))
+		values := make([]interface{}, len(fields)) // values of the various fields
+		scans := make([]interface{}, len(fields))  // pointers to the values, to pass to Scan()
 		for i := range values {
 			scans[i] = &values[i]
 		}
 		if err = rows.Scan(scans...); err != nil {
-			return ResItemEmpty(), err
+			return nil, err
 		}
 
 		toAdd := make(map[string]interface{})
@@ -110,102 +141,107 @@ func processWithResultSet(tx *sql.Tx, q string, decoder *requestItemCrypto, valu
 
 		if decoder != nil {
 			if err := decrypt(*decoder, toAdd); err != nil {
-				return ResItemEmpty(), err
+				return nil, err
 			}
 		}
 		resultSet = append(resultSet, toAdd)
 	}
 
 	if err = rows.Err(); err != nil {
-		return ResItemEmpty(), err
+		return nil, err
 	}
 
-	return ResItem4Query(resultSet), nil
+	return &responseItem{true, nil, nil, resultSet, ""}, nil
 }
 
-func processForExec(tx *sql.Tx, q string, values map[string]interface{}) (responseItem, error) {
-	qres, err := tx.Exec(q, vals2nameds(values)...)
+// Process a single statement, and returns a suitable responseItem
+func processForExec(tx *sql.Tx, statement string, values map[string]interface{}) (*responseItem, error) {
+	res, err := tx.Exec(statement, vals2nameds(values)...)
 	if err != nil {
-		return ResItemEmpty(), err
+		return nil, err
 	}
 
-	rAff, err := qres.RowsAffected()
+	rowsUpdated, err := res.RowsAffected()
 	if err != nil {
-		return ResItemEmpty(), err
+		return nil, err
 	}
 
-	return ResItem4Statement(rAff), nil
+	return &responseItem{true, &rowsUpdated, nil, nil, ""}, nil
 }
 
-func processForExecBatch(tx *sql.Tx, q string, valuesBatch []map[string]interface{}) (responseItem, error) {
+// Process a batch statement, and returns a suitable responseItem.
+// It prepares the statement, then executes it for each of the values' sets.
+func processForExecBatch(tx *sql.Tx, q string, valuesBatch []map[string]interface{}) (*responseItem, error) {
 	ps, err := tx.Prepare(q)
 	if err != nil {
-		return ResItemEmpty(), err
+		return nil, err
 	}
 	defer ps.Close()
 
-	var rAffs []int64
+	var rowsUpdatedBatch []int64
 	for i := range valuesBatch {
-		qres, err := ps.Exec(vals2nameds(valuesBatch[i])...)
+		res, err := ps.Exec(vals2nameds(valuesBatch[i])...)
 		if err != nil {
-			return ResItemEmpty(), err
+			return nil, err
 		}
 
-		rAff, err := qres.RowsAffected()
+		rowsUpdated, err := res.RowsAffected()
 		if err != nil {
-			return ResItemEmpty(), err
+			return nil, err
 		}
 
-		rAffs = append(rAffs, rAff)
+		rowsUpdatedBatch = append(rowsUpdatedBatch, rowsUpdated)
 	}
 
-	return ResItem4Batch(rAffs), nil
+	return &responseItem{true, nil, rowsUpdatedBatch, nil, ""}, nil
 }
 
+// Handler for the POST. Receives the body of the HTTP request, parses it
+// and executes the transaction on the database retrieved from the URL path.
+// Constructs and sends the response.
 func handler(c *fiber.Ctx) error {
 	var body request
 	if err := c.BodyParser(&body); err != nil {
-		panic(newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error()))
+		return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
 	}
 
 	databaseId := c.Params("databaseId")
 	if databaseId == "" {
-		panic(newWSError(-1, fiber.StatusNotFound, "missing database ID"))
+		return newWSError(-1, fiber.StatusNotFound, "missing database ID")
 	}
 
-	_db, found := dbs[databaseId]
+	db, found := dbs[databaseId]
 	if !found {
-		panic(newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId))
+		return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
 	}
-	db := _db
 
 	if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeInline {
 		if err := applyAuth(&db, &body); err != nil {
-			db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
-			time.Sleep(2 * time.Second)
+			// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
+			db.Mutex.Lock()
+			time.Sleep(time.Second)
 			db.Mutex.Unlock()
-			panic(newWSError(-1, fiber.StatusUnauthorized, err.Error()))
+			return newWSError(-1, fiber.StatusUnauthorized, err.Error())
 		}
 	}
 
-	if body.Transaction == nil || len(body.Transaction) == 0 {
-		panic(newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)"))
+	if len(body.Transaction) == 0 {
+		return newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)")
 	}
 
-	var ret response
-
-	dbc, err := db.Db.Conn(context.Background())
+	dbConn, err := db.Db.Conn(context.Background())
 	if err != nil {
-		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
 	}
-	defer dbc.Close()
+	defer dbConn.Close()
 
-	tx, err := dbc.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
+	// Opens a transaction. One more occasion to specify: read only ;-)
+	tx, err := dbConn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
 	if err != nil {
-		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
+		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
 	}
 
-	tainted := true // if I reach the end of the method, I switch this to false to signal success
+	tainted := true // If I reach the end of the method, I switch this to false to signal success
 	defer func() {
 		if tainted {
 			tx.Rollback()
@@ -214,66 +250,75 @@ func handler(c *fiber.Ctx) error {
 		}
 	}()
 
+	var ret response
+	ret.Results = make([]responseItem, len(body.Transaction))
+
 	for i := range body.Transaction {
-		if (body.Transaction[i].Query == "") == (body.Transaction[i].Statement == "") { // both null or both populated
-			ret.Results = reportError(errors.New("one and only one of query or statement must be provided"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		txItem := body.Transaction[i]
+
+		if (txItem.Query == "") == (txItem.Statement == "") {
+			reportError(errors.New("one and only one of query or statement must be provided"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 			continue
 		}
 
-		hasResultSet := body.Transaction[i].Query != ""
+		hasResultSet := txItem.Query != ""
 
-		if hasResultSet && body.Transaction[i].Encoder != nil {
-			ret.Results = reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-		}
-
-		if !hasResultSet && body.Transaction[i].Decoder != nil {
-			ret.Results = reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-		}
-
-		if !hasResultSet {
-			body.Transaction[i].Query = body.Transaction[i].Statement
-		}
-
-		if len(body.Transaction[i].Values) != 0 && len(body.Transaction[i].ValuesBatch) != 0 {
-			ret.Results = reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		if hasResultSet && txItem.Encoder != nil {
+			reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 			continue
 		}
 
-		if hasResultSet && len(body.Transaction[i].ValuesBatch) != 0 {
-			ret.Results = reportError(errors.New("cannot specify valuesBatch for queries (only for statements)"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+		if !hasResultSet && txItem.Decoder != nil {
+			reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 			continue
 		}
 
-		hasBatch := len(body.Transaction[i].ValuesBatch) != 0
+		if len(txItem.Values) != 0 && len(txItem.ValuesBatch) != 0 {
+			reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+			continue
+		}
 
-		var q string
-		if strings.HasPrefix(body.Transaction[i].Query, "#") {
+		if hasResultSet && len(txItem.ValuesBatch) > 0 {
+			reportError(errors.New("cannot specify valuesBatch for queries (only for statements)"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+			continue
+		}
+
+		var sql string
+
+		if hasResultSet {
+			sql = txItem.Query
+		} else {
+			sql = txItem.Statement
+		}
+
+		// Processes a stored statement
+		if strings.HasPrefix(sql, "#") {
 			var ok bool
-			q, ok = db.StoredStatsMap[body.Transaction[i].Query[1:]]
+			sql, ok = db.StoredStatsMap[sql[1:]]
 			if !ok {
-				ret.Results = reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+				reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
 			}
 		} else {
 			if db.UseOnlyStoredStatements {
-				ret.Results = reportError(errors.New("configured to serve only stored statements, but SQL is passed"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
+				reportError(errors.New("configured to serve only stored statements, but SQL is passed"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
 			}
-			q = body.Transaction[i].Query
 		}
 
-		if hasBatch {
+		if len(txItem.ValuesBatch) > 0 {
+			// Process a batch statement (multiple values)
 			var valuesBatch []map[string]interface{}
-			for i2 := range body.Transaction[i].ValuesBatch {
-				values, err := raw2vals(body.Transaction[i].ValuesBatch[i2])
+			for i2 := range txItem.ValuesBatch {
+				values, err := raw2vals(txItem.ValuesBatch[i2])
 				if err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
 				}
 
-				if body.Transaction[i].Encoder != nil {
-					if err := encrypt(*body.Transaction[i].Encoder, values); err != nil {
-						ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+				if txItem.Encoder != nil {
+					if err := encrypt(*txItem.Encoder, values); err != nil {
+						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue
 					}
 				}
@@ -281,56 +326,62 @@ func handler(c *fiber.Ctx) error {
 				valuesBatch = append(valuesBatch, values)
 			}
 
-			retE, err := processForExecBatch(tx, q, valuesBatch)
+			retE, err := processForExecBatch(tx, sql, valuesBatch)
 			if err != nil {
-				ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+				reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 				continue
 			}
 
-			ret.Results = append(ret.Results, retE)
+			ret.Results[i] = *retE
 		} else {
-			values, err := raw2vals(body.Transaction[i].Values)
+			// At most one values set (be it query or statement)
+			values, err := raw2vals(txItem.Values)
 			if err != nil {
-				ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+				reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 				continue
 			}
 
-			if body.Transaction[i].Encoder != nil {
-				if err := encrypt(*body.Transaction[i].Encoder, values); err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+			if txItem.Encoder != nil {
+				if err := encrypt(*txItem.Encoder, values); err != nil {
+					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
 				}
 			}
 
 			if hasResultSet {
+				// Query
 				// Externalized in a func so that defer rows.Close() actually runs
-				retWR, err := processWithResultSet(tx, q, body.Transaction[i].Decoder, values)
+				retWR, err := processWithResultSet(tx, sql, txItem.Decoder, values)
 				if err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
 				}
 
-				ret.Results = append(ret.Results, retWR)
+				ret.Results[i] = *retWR
 			} else {
-				retE, err := processForExec(tx, q, values)
+				// Statement
+				retE, err := processForExec(tx, sql, values)
 				if err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
+					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
 				}
 
-				ret.Results = append(ret.Results, retE)
+				ret.Results[i] = *retE
 			}
 		}
 	}
 
+	// I use Jettyson to encode JSON because I want to be able to encode an empty resultset
+	// but exclude a nil one from the resulting JSON; problem is, omitempty will exclude
+	// both, so I use Jettison that allows a "omitnil" parameter that has the desired effect.
 	bytes, err := jettison.Marshal(ret)
 	if err != nil {
-		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	} else {
-		tainted = false
+		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
 	}
 
-	c.Response().Header.Add("Content-Type", "application/json")
+	tainted = false
+
+	c.Set("Content-Type", "application/json")
 
 	return c.Send(bytes)
 }

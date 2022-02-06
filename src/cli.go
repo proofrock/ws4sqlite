@@ -27,7 +27,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// This method parses the commandline and produces a config instance, either
+// by filling in the database information when specifying a single database
+// on the commandline, or loading a YAML config file.
+//
+// The config file must then be "completed" by verifying the coherence of the
+// various fields, and generating the pointers to database, mutexes etc.
 func parseCLI() config {
+	// cli parameters
 	cfgPath := flag.String("cfg", "", "Path of the YAML config file.")
 	dbFilePath := flag.String("db", "", "Path of the database file.")
 	bindHost := flag.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
@@ -36,6 +43,7 @@ func parseCLI() config {
 
 	flag.Parse()
 
+	// version is always printed, before calling this method, so nothing left to do but exit
 	if *version {
 		os.Exit(0)
 	}
@@ -47,11 +55,13 @@ func parseCLI() config {
 		mllog.Fatal("one and only one of --cfg and --db must be specified")
 	}
 
-	if *cfgPath != "" {
-		if !strings.HasSuffix(*cfgPath, ".yaml") {
+	if *cfgPath != "" { // configuration file
+		// must be an YAML file
+		if !strings.HasSuffix(strings.ToLower(*cfgPath), ".yaml") {
 			mllog.Fatal("config file must end with .yaml")
 		}
 
+		// resolves '~'
 		*cfgPath, err = homedir.Expand(*cfgPath)
 		if err != nil {
 			mllog.Fatal("in expanding config file path: ", err.Error())
@@ -74,6 +84,7 @@ func parseCLI() config {
 			mllog.Fatal("database file must end with .db")
 		}
 
+		// resolves '~'
 		*dbFilePath, err = homedir.Expand(*dbFilePath)
 		if err != nil {
 			mllog.Fatal("in expanding database file path: ", err.Error())
@@ -84,6 +95,7 @@ func parseCLI() config {
 		ret = config{
 			Databases: []db{
 				{
+					// ID is the filename without the suffix
 					Id:   dbFn[0 : len(dbFn)-3],
 					Path: *dbFilePath,
 				},
@@ -91,6 +103,7 @@ func parseCLI() config {
 		}
 	}
 
+	// embed the cli parameters in the config
 	ret.Bindhost = *bindHost
 	ret.Port = *port
 

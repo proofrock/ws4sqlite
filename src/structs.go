@@ -128,26 +128,6 @@ type responseItem struct {
 	Error            string                   `json:"error,omitempty"`
 }
 
-func ResItemEmpty() responseItem {
-	return responseItem{}
-}
-
-func ResItem4Query(resultSet []map[string]interface{}) responseItem {
-	return responseItem{true, nil, nil, resultSet, ""}
-}
-
-func ResItem4Statement(rowsUpdated int64) responseItem {
-	return responseItem{true, &rowsUpdated, nil, nil, ""}
-}
-
-func ResItem4Batch(rowsUpdatedBatch []int64) responseItem {
-	return responseItem{true, nil, rowsUpdatedBatch, nil, ""}
-}
-
-func ResItem4Error(error string) responseItem {
-	return responseItem{false, nil, nil, nil, error}
-}
-
 type response struct {
 	Results []responseItem `json:"results"`
 }

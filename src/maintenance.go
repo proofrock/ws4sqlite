@@ -35,8 +35,11 @@ import (
 
 const bkpTimeFormat = "060102-1504"
 
+// Used when deleting older backup files, the date/time is substituted with '?'
 var bkpTimeGlob = strings.Repeat("?", len(bkpTimeFormat))
 
+// Parses a backup plan, checks that it is well-formed and returns a function that
+// will be called by cron and executes the plan.
 func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 	var bkpDir, bkpFile string
 	if mntCfg.DoBackup {
@@ -66,6 +69,12 @@ func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 			mllog.Fatal("the number of backup files to keep must be at least 1")
 		}
 	}
+
+	// Execute a maintenance cycle, according to the plan. If so configured, does
+	// a VACUUM, then a backup (with VACUUM INTO). Being a lambda, inherits the
+	// plan from the parsing (above)
+	//
+	// Just log Errors when it fails. Doesn't of course block/abort anything.
 	return func() {
 		if mntCfg.DoVacuum {
 			if _, err := db.Exec("VACUUM"); err != nil {
@@ -86,7 +95,7 @@ func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 				mllog.Error("maint (backup): ", err.Error())
 				return
 			}
-			// delete the backup files but for the last n
+			// delete the backup files, except for the last n
 			list, err := filepath.Glob(fmt.Sprintf(filepath.Join(bkpDir, bkpFile), bkpTimeGlob))
 			if err != nil {
 				mllog.Error("maint (pruning): ", err.Error())
@@ -104,11 +113,14 @@ var scheduler = cron.New()
 var schedulings = 0
 var exprDesc, _ = cronDesc.NewDescriptor()
 
+// Calls the parsing of the maintenance plan config, via doMaint(), and adds the
+// resulting maintenance func to be executed by cron
 func parseMaint(db *db) {
 	if _, err := scheduler.AddFunc(db.Maintenance.Schedule, doMaint(db.Id, *db.Maintenance, db.Db)); err != nil {
 		mllog.Fatal(err.Error())
 	}
 	schedulings++
+	// Also prints a log containing the human-readable translation of the cron schedule
 	if descr, err := exprDesc.ToDescription(db.Maintenance.Schedule, cronDesc.Locale_en); err != nil {
 		mllog.Fatal("error in decoding schedule: ", err.Error())
 	} else {
@@ -116,6 +128,8 @@ func parseMaint(db *db) {
 	}
 }
 
+// Called by the launch function to actually start the cron engine.
+// Does it only if there's something to do.
 func startMaint() {
 	if schedulings > 0 {
 		scheduler.Start()

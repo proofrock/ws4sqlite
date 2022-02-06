@@ -25,7 +25,6 @@ import (
 	"time"
 
 	mllog "github.com/proofrock/go-mylittlelogger"
-	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -38,34 +37,9 @@ import (
 
 const version = "0.11pre1"
 
-// Catches the panics and converts the argument in a struct that Fiber uses to
-// signal the error, setting the response code and the JSON that is actually returned
-// with all its properties.
-// It uses <panic> and the recover middleware to manage errors because it's the only
-// way I know to let a custom structure/error arrive here; the standard way can only
-// wrap a string.
-func errHandler(c *fiber.Ctx, err error) error {
-	var ret wsError
-
-	if fe, ok := err.(*fiber.Error); ok {
-		ret = newWSError(-1, fe.Code, capitalize(fe.Error()))
-	} else if wse, ok := err.(wsError); ok {
-		ret = wse
-	} else {
-		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
-	}
-
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		// FIXME endless recursion? Unlikely, if jettison does its job
-		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	}
-
-	c.Response().Header.Add("Content-Type", "application/json")
-
-	return c.Status(ret.Code).Send(bytes)
-}
-
+// Simply prints an header, parses the cli parameters and calls
+// launch(), that is the real entry point. It's separate from the
+// main method because launch() is called by the unit tests.
 func main() {
 	mllog.StdOut("ws4sqlite ", version)
 
@@ -74,9 +48,15 @@ func main() {
 	launch(cfg, false)
 }
 
+// A map with the database IDs as key, and the db struct as values.
 var dbs map[string]db
+
+// Fiber app, that serves the web service.
 var app *fiber.App
 
+// Actual entry point, called by main() and by the unit tests.
+// Can be called multiple times, but the Fiber app must be
+// terminated (see the Shutdown method in the tests).
 func launch(cfg config, disableKeepAlive4Tests bool) {
 	var err error
 
@@ -84,181 +64,198 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		mllog.Fatal("no database specified")
 	}
 
+	// Let's create the web server
+	app = fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+		ErrorHandler:          errHandler,
+		// This is because with keep alive on, in tests, the shutdown hangs until...
+		// I think... some timeouts expire, but for a long time anyway. In normal
+		// operations it's of course desirable.
+		DisableKeepalive: disableKeepAlive4Tests,
+	})
+	// This intercepts the panics, and delegates them to the ErrorHandler.
+	// See the comments to errHandler() to see why.
+	app.Use(recover.New())
+
 	dbs = make(map[string]db)
 	for i := range cfg.Databases {
-		if cfg.Databases[i].Id == "" {
+		database := cfg.Databases[i]
+
+		if database.Id == "" {
 			mllog.Fatalf("no id specified for db #%d.", i)
 		}
 
-		if _, ok := dbs[cfg.Databases[i].Id]; ok {
-			mllog.Fatalf("id '%s' already specified.", cfg.Databases[i].Id)
+		if _, ok := dbs[database.Id]; ok {
+			mllog.Fatalf("id '%s' already specified.", database.Id)
 		}
 
-		isMemory := strings.Contains(cfg.Databases[i].Path, ":memory:")
+		// FIXME check if this is enough to consider it in-memory
+		isMemory := strings.Contains(database.Path, ":memory:")
 
-		if cfg.Databases[i].Path == "" {
-			mllog.Fatalf("no path specified for db '%s'.", cfg.Databases[i].Id)
+		if database.Path == "" {
+			mllog.Fatalf("no path specified for db '%s'.", database.Id)
 		}
+
 		if !isMemory {
-			if cfg.Databases[i].Path, err = homedir.Expand(cfg.Databases[i].Path); err != nil {
+			// Resolves '~'
+			if database.Path, err = homedir.Expand(database.Path); err != nil {
 				mllog.Fatal("in expanding db file path: ", err.Error())
 			}
 		}
 
-		toCreate := isMemory || !fileExists(cutUntil(cfg.Databases[i].Path, "?"))
+		// Is the database new? Later I'll have to create the InitStatements
+		toCreate := isMemory || !fileExists(cutUntil(database.Path, "?"))
 
-		url := cfg.Databases[i].Path
-		var items []string
-		if cfg.Databases[i].ReadOnly {
-			items = append(items, "mode=ro", "immutable=1", "_query_only=1")
+		// Compose the Connection String to the SQLite db. Use options as defined
+		// by go-sqlite3 (https://github.com/mattn/go-sqlite3#connection-string)
+		connString := database.Path
+		var options []string
+		if database.ReadOnly {
+			// Several ways to be read-only...
+			options = append(options, "mode=ro", "immutable=1", "_query_only=1")
 		}
-		if !cfg.Databases[i].DisableWALMode {
-			items = append(items, "_journal=WAL")
+		if !database.DisableWALMode {
+			options = append(options, "_journal=WAL")
 		}
-		if len(items) > 0 {
-			var initiator string // the url may already contain some parameters
-			if strings.Contains(url, "?") {
+		if len(options) > 0 {
+			initiator := "?"
+			if strings.Contains(connString, "?") {
+				// The url may already contain some parameters
 				initiator = "&"
-			} else {
-				initiator = "?"
 			}
-			url = url + initiator + strings.Join(items, "&")
+			connString = connString + initiator + strings.Join(options, "&")
 		}
 
-		mllog.StdOutf("- Serving database '%s' from %s", cfg.Databases[i].Id, url)
+		mllog.StdOutf("- Serving database '%s' from %s", database.Id, connString)
 
-		if toCreate {
+		if database.ReadOnly && toCreate && len(database.InitStatements) > 0 {
+			mllog.Fatalf("'%s': a new db cannot be read only and have init statement", database.Id)
+		}
+
+		if !isMemory && toCreate {
 			mllog.StdOut("  + File not present, it will be created")
 		}
 
-		if !cfg.Databases[i].DisableWALMode {
+		if !database.DisableWALMode {
 			mllog.StdOut("  + Using WAL")
 		}
 
-		if cfg.Databases[i].ReadOnly && toCreate && len(cfg.Databases[i].InitStatements) > 0 {
-			mllog.Fatalf("'%s': a new db cannot be read only and have init statement", cfg.Databases[i].Id)
-		}
-
-		if cfg.Databases[i].ReadOnly {
+		if database.ReadOnly {
 			mllog.StdOut("  + Read only")
 		}
 
-		if cfg.Databases[i].UseOnlyStoredStatements {
-			mllog.StdOut("  + Strictly using stored statements")
+		if database.UseOnlyStoredStatements {
+			mllog.StdOut("  + Strictly using only stored statements")
 		}
 
-		cfg.Databases[i].StoredStatsMap = make(map[string]string)
+		database.StoredStatsMap = make(map[string]string)
 
-		for i2 := range cfg.Databases[i].StoredStatement {
-			if cfg.Databases[i].StoredStatement[i2].Id == "" || cfg.Databases[i].StoredStatement[i2].Sql == "" {
-				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", i2, cfg.Databases[i].Id)
+		for j := range database.StoredStatement {
+			ss := database.StoredStatement[j]
+			if ss.Id == "" || ss.Sql == "" {
+				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", j, database.Id)
 			}
-			cfg.Databases[i].StoredStatsMap[cfg.Databases[i].StoredStatement[i2].Id] = cfg.Databases[i].StoredStatement[i2].Sql
+			database.StoredStatsMap[ss.Id] = ss.Sql
 		}
 
-		if len(cfg.Databases[i].StoredStatsMap) > 0 {
-			mllog.StdOutf("  + With %d stored statements", len(cfg.Databases[i].StoredStatsMap))
-		} else if cfg.Databases[i].UseOnlyStoredStatements {
-			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", cfg.Databases[i].Id)
+		if len(database.StoredStatsMap) > 0 {
+			mllog.StdOutf("  + With %d stored statements", len(database.StoredStatsMap))
+		} else if database.UseOnlyStoredStatements {
+			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", database.Id)
 		}
 
 		// Opens the DB and adds it to the structure
-		_db, err := sql.Open("sqlite3", url)
+		dbObj, err := sql.Open("sqlite3", connString)
 		if err != nil {
 			mllog.Fatal(err.Error())
 		}
 		// This method returns when the application exits. As per https://github.com/mattn/go-sqlite3/issues/1008,
-		// it's not necessary to Close() the _db. The file remains consistent, and the pointers and locks are freed, of course.
+		// it's not necessary to Close() the _db. The file remains consistent, and the pointers and locks are freed,
+		// of course.
 
 		// For concurrent writes, see  https://stackoverflow.com/questions/35804884/sqlite-concurrent-writing-performance
 		// If WAL is disabled, disable concurrency; see https://sqlite.org/wal.html
-		if !cfg.Databases[i].ReadOnly || cfg.Databases[i].DisableWALMode {
-			_db.SetMaxOpenConns(1)
+		if !database.ReadOnly || database.DisableWALMode {
+			dbObj.SetMaxOpenConns(1)
 		}
 
 		// Executes a query on the DB, to create the file if not present
 		// and report general errors as soon as possible.
-		if _, err := _db.Exec("SELECT 1"); err != nil {
-			mllog.Fatalf("accessing the database '%s': %s", cfg.Databases[i].Id, err.Error())
+		if _, err := dbObj.Exec("SELECT 1"); err != nil {
+			mllog.Fatalf("accessing the database '%s': %s", database.Id, err.Error())
 		}
 
-		if toCreate && len(cfg.Databases[i].InitStatements) > 0 {
-			for i2 := range cfg.Databases[i].InitStatements {
-				if _, err := _db.Exec(cfg.Databases[i].InitStatements[i2]); err != nil {
+		if toCreate && len(database.InitStatements) > 0 {
+			for j := range database.InitStatements {
+				if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
 					if !isMemory {
-						os.Remove(cutUntil(url, "?"))
+						// I fail and abort, so remove the leftover file
+						// FIXME should I remove the files
+						os.Remove(cutUntil(connString, "?"))
 					}
-					mllog.Fatalf("in init statement %d for database '%s': %s", i2+1, cfg.Databases[i].Id, err.Error())
+					mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
 				}
 			}
-			mllog.StdOutf("  + %d init statements performed", len(cfg.Databases[i].InitStatements))
+			mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))
 		}
 
-		// Creates the mutex to be used to serialize the waith after a failed auth
+		// Creates the mutex to be used to serialize the waiting time after a failed auth
 		var mutex sync.Mutex
-		cfg.Databases[i].Mutex = &mutex
+		database.Mutex = &mutex
 
-		cfg.Databases[i].Db = _db
+		database.Db = dbObj
 
-		if cfg.Databases[i].Auth != nil {
-			parseAuth(&cfg.Databases[i])
+		// Parsing of the authentication
+		if database.Auth != nil {
+			parseAuth(&database)
 		}
 
-		if cfg.Databases[i].CORSOrigin != "" {
-			mllog.StdOut("  + CORS Origin set to ", cfg.Databases[i].CORSOrigin)
-		}
-
-		if cfg.Databases[i].Maintenance != nil {
-			if cfg.Databases[i].ReadOnly {
-				mllog.Fatalf("'%s': a db cannot be read only and have a maintenance plan", cfg.Databases[i].Id)
+		// Parsing of the maintenance plan
+		if database.Maintenance != nil {
+			if database.ReadOnly {
+				// Actually it's a limit of SQLite, in a read-only db neither VACUUM nor VACUUM INTO
+				// (used to do backups) work. Maybe we are over-configuring when read only?
+				mllog.Fatalf("'%s': a db cannot be read only and have a maintenance plan", database.Id)
 			}
-			parseMaint(&cfg.Databases[i])
+			parseMaint(&database)
 		}
 
-		dbs[cfg.Databases[i].Id] = cfg.Databases[i]
-	}
-
-	startMaint()
-
-	app = fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-		ErrorHandler:          errHandler,
-		DisableKeepalive:      disableKeepAlive4Tests,
-	})
-	app.Use(recover.New())
-
-	// See if CORS is needed for the specifies databases, and for each one
-	// adds an instance of the CORS middleware
-	for k := range dbs {
-		db := dbs[k]
-		// in the middlewares, c.Param("databaseId") doesn't work, because they are outside an handler
-		// so we just use c.Path()[1:]
-		if db.CORSOrigin != "" {
+		if database.CORSOrigin != "" {
+			// See if CORS is needed for this database, and adds an instance of the CORS middleware;
+			// at each call, the Next() method of each instance is called by Fiber to determine which one
+			// should actually run
+			// In the middlewares, c.Param("databaseId") doesn't work, because they are outside an handler
+			// so we just use c.Path()[1:]
 			app.Use(cors.New(cors.Config{
 				Next: func(c *fiber.Ctx) bool {
 					switch c.Method() {
 					case "POST":
-						return c.Path()[1:] != db.Id
+						return c.Path()[1:] != database.Id
 					case "OPTIONS":
-						return db.CORSOrigin != "*" && db.CORSOrigin != c.Get("Origin")
+						return database.CORSOrigin != "*" && database.CORSOrigin != c.Get("Origin")
 					default:
 						return true
 					}
 				},
 				AllowMethods: "POST",
-				AllowOrigins: db.CORSOrigin,
+				AllowOrigins: database.CORSOrigin,
 			}))
+
+			mllog.StdOut("  + CORS Origin set to ", database.CORSOrigin)
 		}
-		if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeHttp {
+
+		// Same here as above: Next() determines what runs, c.Path[1:] is the db ID
+		if database.Auth != nil && strings.ToUpper(database.Auth.Mode) == authModeHttp {
 			app.Use(basicauth.New(basicauth.Config{
 				Next: func(c *fiber.Ctx) bool {
-					return c.Path()[1:] != db.Id
+					return c.Path()[1:] != database.Id
 				},
 				Authorizer: func(user, password string) bool {
-					if err := applyAuthCreds(&db, user, password); err != nil {
-						db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
-						time.Sleep(2 * time.Second)
-						db.Mutex.Unlock()
+					if err := applyAuthCreds(&database, user, password); err != nil {
+						// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
+						database.Mutex.Lock()
+						time.Sleep(time.Second)
+						database.Mutex.Unlock()
 						mllog.Errorf("credentials not valid for user '%s'", user)
 						return false
 					}
@@ -266,13 +263,20 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 				},
 			}))
 		}
+
+		dbs[database.Id] = database
 	}
 
+	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
+	startMaint()
+
+	// Register the handler
 	app.Post("/:databaseId", handler)
 
+	// Actually start the web server, finally
 	conn := fmt.Sprint(cfg.Bindhost, ":", cfg.Port)
-	mllog.StdOut("- Web Service listening on ", conn)
 	if err := app.Listen(conn); err != nil {
 		mllog.Fatal(err.Error())
 	}
+	mllog.StdOut("- Web Service listening on ", conn)
 }
