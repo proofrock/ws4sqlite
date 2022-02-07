@@ -28,7 +28,6 @@ do-test:
 	cd src; go test -v -timeout 5m
 
 docker:
-	make build
 	sudo docker build -t local_ws4sqlite:latest .
 
 docker-publish:
