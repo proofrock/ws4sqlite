@@ -34,19 +34,19 @@ docker:
 docker-publish:
 	make docker
 	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:latest
-	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.10.0
+	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.11pre1
 	sudo docker push germanorizzo/ws4sqlite:latest
-	sudo docker push germanorizzo/ws4sqlite:v0.10.0
+	sudo docker push germanorizzo/ws4sqlite:v0.11pre1
 	sudo docker rmi local_ws4sqlite:latest
 	sudo docker rmi germanorizzo/ws4sqlite:latest
-	sudo docker rmi germanorizzo/ws4sqlite:v0.10.0
+	sudo docker rmi germanorizzo/ws4sqlite:v0.11pre1
 
 docker-publish-arm:
 	make docker
 	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:latest-arm
-	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.10.0-arm
+	sudo docker image tag local_ws4sqlite:latest germanorizzo/ws4sqlite:v0.11pre1-arm
 	sudo docker push germanorizzo/ws4sqlite:latest-arm
-	sudo docker push germanorizzo/ws4sqlite:v0.10.0-arm
+	sudo docker push germanorizzo/ws4sqlite:v0.11pre1-arm
 	sudo docker rmi local_ws4sqlite:latest
 	sudo docker rmi germanorizzo/ws4sqlite:latest-arm
-	sudo docker rmi germanorizzo/ws4sqlite:v0.10.0-arm
+	sudo docker rmi germanorizzo/ws4sqlite:v0.11pre1-arm

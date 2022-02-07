@@ -1,0 +1,15 @@
+auth:
+  mode: INLINE
+  byQuery: SELECT 1 FROM AUTH WHERE USER = :user AND PASSWORD = :password
+corsOrigin: https://myownsite.com
+useOnlyStoredStatements: true
+storedStatements:
+  - id: Q1
+    sql: SELECT * FROM TEMP
+  - id: Q2
+    sql: INSERT INTO TEMP VALUES (:id, :val)
+initStatements:
+  - CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASSWORD TEXT)
+  - INSERT INTO AUTH VALUES ('myUser1', 'myHotPassword')
+  - CREATE TABLE TEMP (ID INT PRIMARY KEY, VAL TEXT)
+  - INSERT INTO TEMP (ID, VAL) VALUES (1, 'ONE'), (4, 'FOUR')
