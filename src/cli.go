@@ -45,17 +45,20 @@ func (i *arrayFlags) Set(value string) error {
 // The config file must then be "completed" by verifying the coherence of the
 // various fields, and generating the pointers to database, mutexes etc.
 func parseCLI() config {
+	// We don't use the "main" flag set because Parse() is not repeatable (for testing)
+	fs := flag.NewFlagSet("ws4sqlite", flag.ExitOnError)
+
 	// cli parameters
 	var dbFiles arrayFlags
-	flag.Var(&dbFiles, "db", "Repeatable; paths of file-based databases.")
+	fs.Var(&dbFiles, "db", "Repeatable; paths of file-based databases.")
 	var memDb arrayFlags
-	flag.Var(&memDb, "mem-db", "Repeatable; config for memory-based databases (ID[:configFilePath]).")
+	fs.Var(&memDb, "mem-db", "Repeatable; config for memory-based databases (ID[:configFilePath]).")
 
-	bindHost := flag.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
-	port := flag.Int("port", 12321, "Port for the web service (default: 12321).")
-	version := flag.Bool("version", false, "Display the version number")
+	bindHost := fs.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
+	port := fs.Int("port", 12321, "Port for the web service (default: 12321).")
+	version := fs.Bool("version", false, "Display the version number")
 
-	flag.Parse()
+	fs.Parse(os.Args[1:])
 
 	// version is always printed, before calling this method, so nothing left to do but exit
 	if *version {
@@ -64,6 +67,11 @@ func parseCLI() config {
 
 	var ret config
 	var err error
+
+	// It is also tested later, but fail fast
+	if len(dbFiles)+len(memDb) == 0 {
+		mllog.Fatal("no database specified")
+	}
 
 	for i := range dbFiles {
 		if !strings.HasSuffix(dbFiles[i], ".db") {
@@ -80,11 +88,11 @@ func parseCLI() config {
 		id := filepath.Base(dbFiles[i])
 		id = id[0 : len(id)-3]
 
-		yamlFile := filepath.Join(dir, id+"yaml")
+		yamlFile := filepath.Join(dir, id+".yaml")
 
 		var dbConfig db
 		if fileExists(yamlFile) {
-			cfgData, err := os.ReadFile(dbFiles[i])
+			cfgData, err := os.ReadFile(yamlFile)
 			if err != nil {
 				mllog.Fatal("in reading config file: ", err.Error())
 			}
@@ -92,11 +100,12 @@ func parseCLI() config {
 			if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
 				mllog.Fatal("in parsing config file: ", err.Error())
 			}
+
+			dbConfig.HasConfigFile = true
 		}
 
 		dbConfig.Id = id
 		dbConfig.Path = dbFiles[i]
-		dbConfig.HasConfigFile = fileExists(yamlFile)
 		ret.Databases = append(ret.Databases, dbConfig)
 	}
 
@@ -117,7 +126,7 @@ func parseCLI() config {
 				mllog.Fatal("mem-db yaml file does not exist")
 			}
 
-			cfgData, err := os.ReadFile(dbFiles[i])
+			cfgData, err := os.ReadFile(yamlFile)
 			if err != nil {
 				mllog.Fatal("in reading config file: ", err.Error())
 			}
@@ -125,11 +134,12 @@ func parseCLI() config {
 			if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
 				mllog.Fatal("in parsing config file: ", err.Error())
 			}
+
+			dbConfig.HasConfigFile = true
 		}
 
 		dbConfig.Id = id
 		dbConfig.Path = ":memory:"
-		dbConfig.HasConfigFile = yamlFile != ""
 		ret.Databases = append(ret.Databases, dbConfig)
 	}
 
