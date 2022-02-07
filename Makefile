@@ -15,14 +15,17 @@ zbuild:
 	make build
 	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.10.0-linux-`uname -m`.7z ws4sqlite
 
-build-mac:
+build-nostatic:
 	make build-prepare
 	cd src; go build -o ws4sqlite
 	mv src/ws4sqlite bin/
 
-zbuild-mac:
+zbuild-nostatic:
 	make build-mac
 	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.10.0-macos-x86_64.7z ws4sqlite
+
+do-test:
+	cd src; go test -v -timeout 5m
 
 docker:
 	make build
