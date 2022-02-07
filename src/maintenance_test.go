@@ -150,7 +150,7 @@ func TestMaintWithReadOnly(t *testing.T) {
 	success := true
 
 	oldWhenFatal := mllog.WhenFatal
-	mllog.WhenFatal = func() { success = false }
+	mllog.WhenFatal = func(msg string) { success = false }
 	defer func() { mllog.WhenFatal = oldWhenFatal }()
 
 	cfg := config{

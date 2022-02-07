@@ -81,11 +81,11 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	// guard is turned off
 	var filesToDelete []string
 	origWhenFatal := mllog.WhenFatal
-	mllog.WhenFatal = func() {
+	mllog.WhenFatal = func(msg string) {
 		for _, ftd := range filesToDelete {
 			os.Remove(ftd)
 		}
-		origWhenFatal()
+		origWhenFatal(msg)
 	}
 
 	dbs = make(map[string]db)

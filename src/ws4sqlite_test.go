@@ -689,7 +689,7 @@ func TestSetupWITH_ADD_PROPS(t *testing.T) {
 		Databases: []db{
 			{
 				Id:   "test",
-				Path: "file::memory:?cache=shared",
+				Path: "file::memory:",
 				//DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
@@ -749,8 +749,8 @@ func TestRO_MEM_IS(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.WhenFatal = func() { success = false }
-	defer func() { mllog.WhenFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -777,8 +777,8 @@ func Test_IS_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.WhenFatal = func() { success = false }
-	defer func() { mllog.WhenFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -802,8 +802,8 @@ func Test_DoubleId_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.WhenFatal = func() { success = false }
-	defer func() { mllog.WhenFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -821,8 +821,8 @@ func Test_DelWhenInitFails(t *testing.T) {
 	os.Remove("../test/test.db-shm")
 	os.Remove("../test/test.db-wal")
 
-	mllog.WhenFatal = func() {}
-	defer func() { mllog.WhenFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) {}
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -830,7 +830,7 @@ func Test_DelWhenInitFails(t *testing.T) {
 		Databases: []db{
 			{
 				Id:   "test",
-				Path: "../test/test.db?_query_only=0",
+				Path: "../test/test.db",
 				InitStatements: []string{
 					"CLEARLY INVALID SQL",
 				},
@@ -859,8 +859,8 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 
 	success := true
 
-	mllog.WhenFatal = func() { success = false }
-	defer func() { mllog.WhenFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -890,7 +890,7 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 		Databases: []db{
 			{
 				Id:   "test",
-				Path: "../test/test.db?_query_only=0",
+				Path: "../test/test.db",
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 				},
