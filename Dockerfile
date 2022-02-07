@@ -13,9 +13,9 @@ RUN CGO_ENABLED=1 go build
 
 FROM alpine:latest
 
-COPY bin/ws4sqlite /
+COPY --from=build /app/ws4sqlite/src/ws4sqlite /
 
 EXPOSE 12321
 VOLUME /data
 
-ENTRYPOINT ["/ws4sqlite", "--cfg", "/data/config.yaml"]
+ENTRYPOINT ["/ws4sqlite"]
