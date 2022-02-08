@@ -294,8 +294,8 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 	// Actually start the web server, finally
 	conn := fmt.Sprint(cfg.Bindhost, ":", cfg.Port)
+	mllog.StdOut("- Web Service listening on ", conn)
 	if err := app.Listen(conn); err != nil {
 		mllog.Fatal(err.Error())
 	}
-	mllog.StdOut("- Web Service listening on ", conn)
 }
