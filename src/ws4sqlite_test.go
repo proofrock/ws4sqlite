@@ -1,3 +1,19 @@
+/*
+  Copyright (c) 2022-, Germano Rizzo <oss@germanorizzo.it>
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted, provided that the above
+  copyright notice and this permission notice appear in all copies.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
+
 package main
 
 import (
@@ -673,7 +689,7 @@ func TestSetupWITH_ADD_PROPS(t *testing.T) {
 		Databases: []db{
 			{
 				Id:   "test",
-				Path: "file::memory:?cache=shared",
+				Path: "file::memory:",
 				//DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
@@ -733,8 +749,8 @@ func TestRO_MEM_IS(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.ForFatal = func() { success = false }
-	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -761,8 +777,8 @@ func Test_IS_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.ForFatal = func() { success = false }
-	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -786,8 +802,8 @@ func Test_DoubleId_Err(t *testing.T) {
 		},
 	}
 	success := true
-	mllog.ForFatal = func() { success = false }
-	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 	go launch(cfg, true)
 	time.Sleep(time.Second)
 	Shutdown()
@@ -805,8 +821,8 @@ func Test_DelWhenInitFails(t *testing.T) {
 	os.Remove("../test/test.db-shm")
 	os.Remove("../test/test.db-wal")
 
-	mllog.ForFatal = func() {}
-	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) {}
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -814,7 +830,7 @@ func Test_DelWhenInitFails(t *testing.T) {
 		Databases: []db{
 			{
 				Id:   "test",
-				Path: "../test/test.db?_query_only=0",
+				Path: "../test/test.db",
 				InitStatements: []string{
 					"CLEARLY INVALID SQL",
 				},
@@ -843,8 +859,8 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 
 	success := true
 
-	mllog.ForFatal = func() { success = false }
-	defer func() { mllog.ForFatal = func() { os.Exit(1) } }()
+	mllog.WhenFatal = func(msg string) { success = false }
+	defer func() { mllog.WhenFatal = func(msg string) { os.Exit(1) } }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -874,7 +890,7 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 		Databases: []db{
 			{
 				Id:   "test",
-				Path: "../test/test.db?_query_only=0",
+				Path: "../test/test.db",
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 				},

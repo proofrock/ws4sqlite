@@ -17,20 +17,14 @@
 package main
 
 import (
-	"context"
 	"database/sql"
-	"errors"
-	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/proofrock/crypgo"
 	mllog "github.com/proofrock/go-mylittlelogger"
-	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
@@ -39,80 +33,30 @@ import (
 	"github.com/mitchellh/go-homedir"
 
 	_ "github.com/mattn/go-sqlite3"
-
-	"gopkg.in/yaml.v2"
 )
 
-const version = "0.10.0"
+const version = "0.11.0"
 
-// Catches the panics and converts the argument in a struct that Fiber uses to
-// signal the error, setting the response code and the JSON that is actually returned
-// with all its properties.
-// It uses <panic> and the recover middleware to manage errors because it's the only
-// way I know to let a custom structure/error arrive here; the standard way can only
-// wrap a string.
-func errHandler(c *fiber.Ctx, err error) error {
-	var ret wsError
-
-	if fe, ok := err.(*fiber.Error); ok {
-		ret = newWSError(-1, fe.Code, capitalize(fe.Error()))
-	} else if wse, ok := err.(wsError); ok {
-		ret = wse
-	} else {
-		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
-	}
-
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		// FIXME endless recursion? Unlikely, if jettison does its job
-		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	}
-
-	c.Response().Header.Add("Content-Type", "application/json")
-
-	return c.Status(ret.Code).Send(bytes)
-}
-
+// Simply prints an header, parses the cli parameters and calls
+// launch(), that is the real entry point. It's separate from the
+// main method because launch() is called by the unit tests.
 func main() {
 	mllog.StdOut("ws4sqlite ", version)
 
-	cfgDir := flag.String("cfg-dir", ".", "Directory where to look for the config.yaml file (default: current dir).")
-	bindHost := flag.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
-	port := flag.Int("port", 12321, "Port for the web service (default: 12321).")
-	version := flag.Bool("version", false, "Display the version number")
-
-	flag.Parse()
-
-	if *version {
-		os.Exit(0)
-	}
-
-	var err error
-
-	*cfgDir, err = homedir.Expand(*cfgDir)
-	if err != nil {
-		mllog.Fatal("in expanding config file path: ", err.Error())
-	}
-
-	cfgData, err := os.ReadFile(filepath.Join(*cfgDir, "config.yaml"))
-	if err != nil {
-		mllog.Fatal("in reading config file: ", err.Error())
-	}
-
-	var cfg config
-	if err = yaml.Unmarshal(cfgData, &cfg); err != nil {
-		mllog.Fatal("in parsing config file: ", err.Error())
-	}
-
-	cfg.Bindhost = *bindHost
-	cfg.Port = *port
+	cfg := parseCLI()
 
 	launch(cfg, false)
 }
 
+// A map with the database IDs as key, and the db struct as values.
 var dbs map[string]db
+
+// Fiber app, that serves the web service.
 var app *fiber.App
 
+// Actual entry point, called by main() and by the unit tests.
+// Can be called multiple times, but the Fiber app must be
+// terminated (see the Shutdown method in the tests).
 func launch(cfg config, disableKeepAlive4Tests bool) {
 	var err error
 
@@ -120,177 +64,215 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		mllog.Fatal("no database specified")
 	}
 
+	// Let's create the web server
+	app = fiber.New(fiber.Config{
+		DisableStartupMessage: true,
+		ErrorHandler:          errHandler,
+		// This is because with keep alive on, in tests, the shutdown hangs until...
+		// I think... some timeouts expire, but for a long time anyway. In normal
+		// operations it's of course desirable.
+		DisableKeepalive: disableKeepAlive4Tests,
+	})
+	// This intercepts the panics, and delegates them to the ErrorHandler.
+	// See the comments to errHandler() to see why.
+	app.Use(recover.New())
+
+	// Later on, for each file created there will be a defer to remove it, unless this
+	// guard is turned off
+	var filesToDelete []string
+	origWhenFatal := mllog.WhenFatal
+	mllog.WhenFatal = func(msg string) {
+		for _, ftd := range filesToDelete {
+			os.Remove(ftd)
+		}
+		origWhenFatal(msg)
+	}
+
 	dbs = make(map[string]db)
 	for i := range cfg.Databases {
-		if cfg.Databases[i].Id == "" {
+		database := cfg.Databases[i]
+
+		if database.Id == "" {
 			mllog.Fatalf("no id specified for db #%d.", i)
 		}
 
-		if _, ok := dbs[cfg.Databases[i].Id]; ok {
-			mllog.Fatalf("id '%s' already specified.", cfg.Databases[i].Id)
+		if _, ok := dbs[database.Id]; ok {
+			mllog.Fatalf("id '%s' already specified.", database.Id)
 		}
 
-		isMemory := strings.Contains(cfg.Databases[i].Path, ":memory:")
+		// FIXME check if this is enough to consider it in-memory
+		isMemory := strings.Contains(database.Path, ":memory:")
 
-		if cfg.Databases[i].Path == "" {
-			mllog.Fatalf("no path specified for db '%s'.", cfg.Databases[i].Id)
+		if database.Path == "" {
+			mllog.Fatalf("no path specified for db '%s'.", database.Id)
 		}
+
 		if !isMemory {
-			if cfg.Databases[i].Path, err = homedir.Expand(cfg.Databases[i].Path); err != nil {
+			// Resolves '~'
+			if database.Path, err = homedir.Expand(database.Path); err != nil {
 				mllog.Fatal("in expanding db file path: ", err.Error())
 			}
 		}
 
-		toCreate := isMemory || !fileExists(cutUntil(cfg.Databases[i].Path, "?"))
+		// Is the database new? Later I'll have to create the InitStatements
+		toCreate := isMemory || !fileExists(database.Path)
 
-		url := cfg.Databases[i].Path
-		var items []string
-		if cfg.Databases[i].ReadOnly {
-			items = append(items, "mode=ro", "immutable=1", "_query_only=1")
+		// Compose the Connection String to the SQLite db. Use options as defined
+		// by go-sqlite3 (https://github.com/mattn/go-sqlite3#connection-string)
+		connString := database.Path
+		var options []string
+		if database.ReadOnly {
+			// Several ways to be read-only...
+			options = append(options, "mode=ro", "immutable=1", "_query_only=1")
 		}
-		if !cfg.Databases[i].DisableWALMode {
-			items = append(items, "_journal=WAL")
+		if !database.DisableWALMode {
+			options = append(options, "_journal=WAL")
 		}
-		if len(items) > 0 {
-			var initiator string // the url may already contain some parameters
-			if strings.Contains(url, "?") {
-				initiator = "&"
-			} else {
-				initiator = "?"
-			}
-			url = url + initiator + strings.Join(items, "&")
+		if len(options) > 0 {
+			connString = connString + "?" + strings.Join(options, "&")
 		}
 
-		mllog.StdOutf("- Serving database '%s' from %s", cfg.Databases[i].Id, url)
+		mllog.StdOutf("- Serving database '%s' from %s", database.Id, connString)
 
-		if !cfg.Databases[i].DisableWALMode {
+		if database.HasConfigFile {
+			mllog.StdOut("  + Parsed companion config file")
+		} else {
+			mllog.StdOut("  + No config file loaded, using defaults")
+		}
+
+		if database.ReadOnly && toCreate && len(database.InitStatements) > 0 {
+			mllog.Fatalf("'%s': a new db cannot be read only and have init statement", database.Id)
+		}
+
+		if !isMemory && toCreate {
+			mllog.StdOut("  + File not present, it will be created")
+		}
+
+		if !database.DisableWALMode {
 			mllog.StdOut("  + Using WAL")
 		}
 
-		if cfg.Databases[i].ReadOnly && toCreate && len(cfg.Databases[i].InitStatements) > 0 {
-			mllog.Fatalf("'%s': a new db cannot be read only and have init statement", cfg.Databases[i].Id)
-		}
-
-		if cfg.Databases[i].ReadOnly {
+		if database.ReadOnly {
 			mllog.StdOut("  + Read only")
 		}
 
-		if cfg.Databases[i].UseOnlyStoredStatements {
-			mllog.StdOut("  + Strictly using stored statements")
+		if database.UseOnlyStoredStatements {
+			mllog.StdOut("  + Strictly using only stored statements")
 		}
 
-		cfg.Databases[i].StoredStatsMap = make(map[string]string)
+		database.StoredStatsMap = make(map[string]string)
 
-		for i2 := range cfg.Databases[i].StoredStatement {
-			if cfg.Databases[i].StoredStatement[i2].Id == "" || cfg.Databases[i].StoredStatement[i2].Sql == "" {
-				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", i2, cfg.Databases[i].Id)
+		for j := range database.StoredStatement {
+			ss := database.StoredStatement[j]
+			if ss.Id == "" || ss.Sql == "" {
+				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", j, database.Id)
 			}
-			cfg.Databases[i].StoredStatsMap[cfg.Databases[i].StoredStatement[i2].Id] = cfg.Databases[i].StoredStatement[i2].Sql
+			database.StoredStatsMap[ss.Id] = ss.Sql
 		}
 
-		if len(cfg.Databases[i].StoredStatsMap) > 0 {
-			mllog.StdOutf("  + With %d stored statements", len(cfg.Databases[i].StoredStatsMap))
-		} else if cfg.Databases[i].UseOnlyStoredStatements {
-			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", cfg.Databases[i].Id)
+		if len(database.StoredStatsMap) > 0 {
+			mllog.StdOutf("  + With %d stored statements", len(database.StoredStatsMap))
+		} else if database.UseOnlyStoredStatements {
+			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", database.Id)
 		}
 
 		// Opens the DB and adds it to the structure
-		_db, err := sql.Open("sqlite3", url)
+		dbObj, err := sql.Open("sqlite3", connString)
 		if err != nil {
 			mllog.Fatal(err.Error())
 		}
 		// This method returns when the application exits. As per https://github.com/mattn/go-sqlite3/issues/1008,
-		// it's not necessary to Close() the _db. The file remains consistent, and the pointers and locks are freed, of course.
+		// it's not necessary to Close() the _db. The file remains consistent, and the pointers and locks are freed,
+		// of course.
 
 		// For concurrent writes, see  https://stackoverflow.com/questions/35804884/sqlite-concurrent-writing-performance
 		// If WAL is disabled, disable concurrency; see https://sqlite.org/wal.html
-		if !cfg.Databases[i].ReadOnly || cfg.Databases[i].DisableWALMode {
-			_db.SetMaxOpenConns(1)
+		if !database.ReadOnly || database.DisableWALMode {
+			dbObj.SetMaxOpenConns(1)
 		}
 
 		// Executes a query on the DB, to create the file if not present
 		// and report general errors as soon as possible.
-		if _, err := _db.Exec("SELECT 1"); err != nil {
-			mllog.Fatalf("accessing the database '%s': %s", cfg.Databases[i].Id, err.Error())
+		if _, err := dbObj.Exec("SELECT 1"); err != nil {
+			mllog.Fatalf("accessing the database '%s': %s", database.Id, err.Error())
 		}
 
-		if toCreate && len(cfg.Databases[i].InitStatements) > 0 {
-			for i2 := range cfg.Databases[i].InitStatements {
-				if _, err := _db.Exec(cfg.Databases[i].InitStatements[i2]); err != nil {
+		// If this cycle will fail, I will have to clean up the created files
+		if toCreate && !isMemory {
+			filesToDelete = append(filesToDelete, database.Path)
+		}
+
+		if toCreate && len(database.InitStatements) > 0 {
+			for j := range database.InitStatements {
+				if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
 					if !isMemory {
-						os.Remove(cutUntil(url, "?"))
+						// I fail and abort, so remove the leftover file
+						// FIXME should I remove the files
+						os.Remove(database.Path)
 					}
-					mllog.Fatalf("in init statement %d for database '%s': %s", i2+1, cfg.Databases[i].Id, err.Error())
+					mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
 				}
 			}
-			mllog.StdOutf("  + %d init statements performed", len(cfg.Databases[i].InitStatements))
+			mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))
 		}
 
-		// Creates the mutex to be used to serialize the waith after a failed auth
+		// Creates the mutex to be used to serialize the waiting time after a failed auth
 		var mutex sync.Mutex
-		cfg.Databases[i].Mutex = &mutex
+		database.Mutex = &mutex
 
-		cfg.Databases[i].Db = _db
+		database.Db = dbObj
 
-		if cfg.Databases[i].Auth != nil {
-			parseAuth(&cfg.Databases[i])
+		// Parsing of the authentication
+		if database.Auth != nil {
+			parseAuth(&database)
 		}
 
-		if cfg.Databases[i].CORSOrigin != "" {
-			mllog.StdOut("  + CORS Origin set to ", cfg.Databases[i].CORSOrigin)
-		}
-
-		if cfg.Databases[i].Maintenance != nil {
-			if cfg.Databases[i].ReadOnly {
-				mllog.Fatalf("'%s': a db cannot be read only and have a maintenance plan", cfg.Databases[i].Id)
+		// Parsing of the maintenance plan
+		if database.Maintenance != nil {
+			if database.ReadOnly {
+				// Actually it's a limit of SQLite, in a read-only db neither VACUUM nor VACUUM INTO
+				// (used to do backups) work. Maybe we are over-configuring when read only?
+				mllog.Fatalf("'%s': a db cannot be read only and have a maintenance plan", database.Id)
 			}
-			parseMaint(&cfg.Databases[i])
+			parseMaint(&database)
 		}
 
-		dbs[cfg.Databases[i].Id] = cfg.Databases[i]
-	}
-
-	startMaint()
-
-	app = fiber.New(fiber.Config{
-		DisableStartupMessage: true,
-		ErrorHandler:          errHandler,
-		DisableKeepalive:      disableKeepAlive4Tests,
-	})
-	app.Use(recover.New())
-
-	// See if CORS is needed for the specifies databases, and for each one
-	// adds an instance of the CORS middleware
-	for k := range dbs {
-		db := dbs[k]
-		// in the middlewares, c.Param("databaseId") doesn't work, because they are outside an handler
-		// so we just use c.Path()[1:]
-		if db.CORSOrigin != "" {
+		if database.CORSOrigin != "" {
+			// See if CORS is needed for this database, and adds an instance of the CORS middleware;
+			// at each call, the Next() method of each instance is called by Fiber to determine which one
+			// should actually run
+			// In the middlewares, c.Param("databaseId") doesn't work, because they are outside an handler
+			// so we just use c.Path()[1:]
 			app.Use(cors.New(cors.Config{
 				Next: func(c *fiber.Ctx) bool {
 					switch c.Method() {
 					case "POST":
-						return c.Path()[1:] != db.Id
+						return c.Path()[1:] != database.Id
 					case "OPTIONS":
-						return db.CORSOrigin != "*" && db.CORSOrigin != c.Get("Origin")
+						return database.CORSOrigin != "*" && database.CORSOrigin != c.Get("Origin")
 					default:
 						return true
 					}
 				},
 				AllowMethods: "POST",
-				AllowOrigins: db.CORSOrigin,
+				AllowOrigins: database.CORSOrigin,
 			}))
+
+			mllog.StdOut("  + CORS Origin set to ", database.CORSOrigin)
 		}
-		if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeHttp {
+
+		// Same here as above: Next() determines what runs, c.Path[1:] is the db ID
+		if database.Auth != nil && strings.ToUpper(database.Auth.Mode) == authModeHttp {
 			app.Use(basicauth.New(basicauth.Config{
 				Next: func(c *fiber.Ctx) bool {
-					return c.Path()[1:] != db.Id
+					return c.Path()[1:] != database.Id
 				},
 				Authorizer: func(user, password string) bool {
-					if err := applyAuthCreds(&db, user, password); err != nil {
-						db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
-						time.Sleep(2 * time.Second)
-						db.Mutex.Unlock()
+					if err := applyAuthCreds(&database, user, password); err != nil {
+						// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
+						database.Mutex.Lock()
+						time.Sleep(time.Second)
+						database.Mutex.Unlock()
 						mllog.Errorf("credentials not valid for user '%s'", user)
 						return false
 					}
@@ -298,320 +280,22 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 				},
 			}))
 		}
+
+		dbs[database.Id] = database
 	}
 
+	mllog.WhenFatal = origWhenFatal
+
+	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
+	startMaint()
+
+	// Register the handler
 	app.Post("/:databaseId", handler)
 
+	// Actually start the web server, finally
 	conn := fmt.Sprint(cfg.Bindhost, ":", cfg.Port)
 	mllog.StdOut("- Web Service listening on ", conn)
 	if err := app.Listen(conn); err != nil {
 		mllog.Fatal(err.Error())
 	}
-}
-
-// Scans the values for a db request and encrypts them as needed
-func encrypt(encoder requestItemCrypto, values map[string]interface{}) error {
-	for i := range encoder.Fields {
-		sval, ok := values[encoder.Fields[i]].(string)
-		if !ok {
-			return errors.New("attempting to encrypt a non-string field")
-		}
-		var eval string
-		var err error
-		if encoder.CompressionLevel < 1 {
-			eval, err = crypgo.Encrypt(encoder.Password, sval)
-		} else if encoder.CompressionLevel < 20 {
-			eval, err = crypgo.CompressAndEncrypt(encoder.Password, sval, encoder.CompressionLevel)
-		} else {
-			return errors.New("compression level is in the range 0-19")
-		}
-		if err != nil {
-			return err
-		}
-		values[encoder.Fields[i]] = eval
-	}
-	return nil
-}
-
-// Scans the results from a db request and decrypts them as needed
-func decrypt(decoder requestItemCrypto, results map[string]interface{}) error {
-	if decoder.CompressionLevel > 0 {
-		return errors.New("cannot specify compression level for decryption")
-	}
-	for i := range decoder.Fields {
-		sval, ok := results[decoder.Fields[i]].(string)
-		if !ok {
-			return errors.New("attempting to decrypt a non-string field")
-		}
-		dval, err := crypgo.Decrypt(decoder.Password, sval)
-		if err != nil {
-			return err
-		}
-		results[decoder.Fields[i]] = dval
-	}
-	return nil
-}
-
-// For a single query item, deals with a failure, determining if it must invalidate all of the transaction
-// or just report an error in the single query
-func reportError(err error, code int, reqIdx int, noFail bool, results []responseItem) []responseItem {
-	if !noFail {
-		panic(newWSError(reqIdx, code, err.Error()))
-	}
-	return append(results, ResItem4Error(capitalize(err.Error())))
-}
-
-func processWithResultSet(tx *sql.Tx, q string, decoder *requestItemCrypto, values map[string]interface{}) (responseItem, error) {
-	resultSet := make([]map[string]interface{}, 0)
-
-	rows, err := tx.Query(q, vals2nameds(values)...)
-	if err != nil {
-		return ResItemEmpty(), err
-	}
-	defer rows.Close()
-
-	fields, err := rows.Columns()
-	if err != nil {
-		return ResItemEmpty(), err
-	}
-	for rows.Next() {
-		values := make([]interface{}, len(fields))
-		scans := make([]interface{}, len(fields))
-		for i := range values {
-			scans[i] = &values[i]
-		}
-		if err = rows.Scan(scans...); err != nil {
-			return ResItemEmpty(), err
-		}
-
-		toAdd := make(map[string]interface{})
-		for i := range values {
-			toAdd[fields[i]] = values[i]
-		}
-
-		if decoder != nil {
-			if err := decrypt(*decoder, toAdd); err != nil {
-				return ResItemEmpty(), err
-			}
-		}
-		resultSet = append(resultSet, toAdd)
-	}
-
-	if err = rows.Err(); err != nil {
-		return ResItemEmpty(), err
-	}
-
-	return ResItem4Query(resultSet), nil
-}
-
-func processForExec(tx *sql.Tx, q string, values map[string]interface{}) (responseItem, error) {
-	qres, err := tx.Exec(q, vals2nameds(values)...)
-	if err != nil {
-		return ResItemEmpty(), err
-	}
-
-	rAff, err := qres.RowsAffected()
-	if err != nil {
-		return ResItemEmpty(), err
-	}
-
-	return ResItem4Statement(rAff), nil
-}
-
-func processForExecBatch(tx *sql.Tx, q string, valuesBatch []map[string]interface{}) (responseItem, error) {
-	ps, err := tx.Prepare(q)
-	if err != nil {
-		return ResItemEmpty(), err
-	}
-	defer ps.Close()
-
-	var rAffs []int64
-	for i := range valuesBatch {
-		qres, err := ps.Exec(vals2nameds(valuesBatch[i])...)
-		if err != nil {
-			return ResItemEmpty(), err
-		}
-
-		rAff, err := qres.RowsAffected()
-		if err != nil {
-			return ResItemEmpty(), err
-		}
-
-		rAffs = append(rAffs, rAff)
-	}
-
-	return ResItem4Batch(rAffs), nil
-}
-
-func handler(c *fiber.Ctx) error {
-	var body request
-	if err := c.BodyParser(&body); err != nil {
-		panic(newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error()))
-	}
-
-	databaseId := c.Params("databaseId")
-	if databaseId == "" {
-		panic(newWSError(-1, fiber.StatusNotFound, "missing database ID"))
-	}
-
-	_db, found := dbs[databaseId]
-	if !found {
-		panic(newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId))
-	}
-	db := _db
-
-	if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeInline {
-		if err := applyAuth(&db, &body); err != nil {
-			db.Mutex.Lock() // When unauthenticated waits for 2s, and doesn't parallelize, to hinder brute force attacks
-			time.Sleep(2 * time.Second)
-			db.Mutex.Unlock()
-			panic(newWSError(-1, fiber.StatusUnauthorized, err.Error()))
-		}
-	}
-
-	if body.Transaction == nil || len(body.Transaction) == 0 {
-		panic(newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)"))
-	}
-
-	var ret response
-
-	dbc, err := db.Db.Conn(context.Background())
-	if err != nil {
-		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	}
-	defer dbc.Close()
-
-	tx, err := dbc.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
-	if err != nil {
-		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	}
-
-	tainted := true // if I reach the end of the method, I switch this to false to signal success
-	defer func() {
-		if tainted {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
-	for i := range body.Transaction {
-		if (body.Transaction[i].Query == "") == (body.Transaction[i].Statement == "") { // both null or both populated
-			ret.Results = reportError(errors.New("only one of query or statement must be provided"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-			continue
-		}
-
-		hasResultSet := body.Transaction[i].Query != ""
-
-		if hasResultSet && body.Transaction[i].Encoder != nil {
-			ret.Results = reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-		}
-
-		if !hasResultSet && body.Transaction[i].Decoder != nil {
-			ret.Results = reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-		}
-
-		if !hasResultSet {
-			body.Transaction[i].Query = body.Transaction[i].Statement
-		}
-
-		if len(body.Transaction[i].Values) != 0 && len(body.Transaction[i].ValuesBatch) != 0 {
-			ret.Results = reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-			continue
-		}
-
-		if hasResultSet && len(body.Transaction[i].ValuesBatch) != 0 {
-			ret.Results = reportError(errors.New("cannot specify valuesBatch for queries (only for statements)"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-			continue
-		}
-
-		hasBatch := len(body.Transaction[i].ValuesBatch) != 0
-
-		var q string
-		if strings.HasPrefix(body.Transaction[i].Query, "#") {
-			var ok bool
-			q, ok = db.StoredStatsMap[body.Transaction[i].Query[1:]]
-			if !ok {
-				ret.Results = reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-				continue
-			}
-		} else {
-			if db.UseOnlyStoredStatements {
-				ret.Results = reportError(errors.New("configured to serve only stored statements, but SQL is passed"), fiber.StatusBadRequest, i, body.Transaction[i].NoFail, ret.Results)
-				continue
-			}
-			q = body.Transaction[i].Query
-		}
-
-		if hasBatch {
-			var valuesBatch []map[string]interface{}
-			for i2 := range body.Transaction[i].ValuesBatch {
-				values, err := raw2vals(body.Transaction[i].ValuesBatch[i2])
-				if err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-					continue
-				}
-
-				if body.Transaction[i].Encoder != nil {
-					if err := encrypt(*body.Transaction[i].Encoder, values); err != nil {
-						ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-						continue
-					}
-				}
-
-				valuesBatch = append(valuesBatch, values)
-			}
-
-			retE, err := processForExecBatch(tx, q, valuesBatch)
-			if err != nil {
-				ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-				continue
-			}
-
-			ret.Results = append(ret.Results, retE)
-		} else {
-			values, err := raw2vals(body.Transaction[i].Values)
-			if err != nil {
-				ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-				continue
-			}
-
-			if body.Transaction[i].Encoder != nil {
-				if err := encrypt(*body.Transaction[i].Encoder, values); err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-					continue
-				}
-			}
-
-			if hasResultSet {
-				// Externalized in a func so that defer rows.Close() actually runs
-				retWR, err := processWithResultSet(tx, q, body.Transaction[i].Decoder, values)
-				if err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-					continue
-				}
-
-				ret.Results = append(ret.Results, retWR)
-			} else {
-				retE, err := processForExec(tx, q, values)
-				if err != nil {
-					ret.Results = reportError(err, fiber.StatusInternalServerError, i, body.Transaction[i].NoFail, ret.Results)
-					continue
-				}
-
-				ret.Results = append(ret.Results, retE)
-			}
-		}
-	}
-
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		panic(newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	} else {
-		tainted = false
-	}
-
-	c.Response().Header.Add("Content-Type", "application/json")
-
-	return c.Send(bytes)
 }

@@ -69,8 +69,9 @@ type storedStatement struct {
 }
 
 type db struct {
-	Id                      string            `yaml:"id"`
-	Path                    string            `yaml:"path"`
+	Id                      string
+	Path                    string
+	HasConfigFile           bool
 	Auth                    *authr            `yaml:"auth"`
 	ReadOnly                bool              `yaml:"readOnly"`
 	CORSOrigin              string            `yaml:"corsOrigin"`
@@ -79,15 +80,15 @@ type db struct {
 	Maintenance             *maintenance      `yaml:"maintenance"`
 	StoredStatement         []storedStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`
-	Db                      *sql.DB           `yaml:"-"`
-	StoredStatsMap          map[string]string `yaml:"-"`
-	Mutex                   *sync.Mutex       `yaml:"-"`
+	Db                      *sql.DB
+	StoredStatsMap          map[string]string
+	Mutex                   *sync.Mutex
 }
 
 type config struct {
-	Bindhost  string `yaml:"-"`
-	Port      int    `yaml:"-"`
-	Databases []db   `yaml:"databases"`
+	Bindhost  string
+	Port      int
+	Databases []db
 }
 
 // These are for parsing the request (from JSON)
@@ -126,26 +127,6 @@ type responseItem struct {
 	RowsUpdatedBatch []int64                  `json:"rowsUpdatedBatch,omitempty"`
 	ResultSet        []map[string]interface{} `json:"resultSet,omitnil"` // omitnil is used by jettison
 	Error            string                   `json:"error,omitempty"`
-}
-
-func ResItemEmpty() responseItem {
-	return responseItem{}
-}
-
-func ResItem4Query(resultSet []map[string]interface{}) responseItem {
-	return responseItem{true, nil, nil, resultSet, ""}
-}
-
-func ResItem4Statement(rowsUpdated int64) responseItem {
-	return responseItem{true, &rowsUpdated, nil, nil, ""}
-}
-
-func ResItem4Batch(rowsUpdatedBatch []int64) responseItem {
-	return responseItem{true, nil, rowsUpdatedBatch, nil, ""}
-}
-
-func ResItem4Error(error string) responseItem {
-	return responseItem{false, nil, nil, nil, error}
 }
 
 type response struct {

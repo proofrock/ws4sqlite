@@ -23,23 +23,18 @@ import (
 	"strings"
 )
 
+// Uppercases (?) the first letter of a string
 func capitalize(str string) string {
 	return strings.ToUpper(str[0:1]) + str[1:]
 }
 
+// Does a file exist? No error returned.
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return false
 	}
 	return !info.IsDir()
-}
-
-func cutUntil(str string, until string) string {
-	if idx := strings.Index(str, until); idx >= 0 {
-		return str[0:idx]
-	}
-	return str
 }
 
 // Maps the raw JSON messages to a proper map, to manage unstructured JSON parsing;
