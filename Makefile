@@ -13,7 +13,7 @@ build:
 
 zbuild:
 	make build
-	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.11.0-linux-`uname -s|tr '[:upper:]' '[:lower:]'`.7z ws4sqlite
+	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.11.0-`uname -s|tr '[:upper:]' '[:lower:]'`-`uname -m`.7z ws4sqlite
 
 build-nostatic:
 	make build-prepare
