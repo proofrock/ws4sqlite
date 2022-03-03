@@ -67,7 +67,7 @@ Obtaining an answer of
 - Provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
 - [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
 - [Quite fast](features/performances.md)!
-- Compact codebase (~850 lines of code);
+- Compact codebase (~900 lines of code);
 - Comprehensive test suite (`make do-test`);
 - [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), both for amd64 and arm32.
 

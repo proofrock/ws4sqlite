@@ -196,6 +196,19 @@ func processForExecBatch(tx *sql.Tx, q string, valuesBatch []map[string]interfac
 	return &responseItem{true, nil, rowsUpdatedBatch, nil, ""}, nil
 }
 
+func ckSQL(sql string) string {
+	if strings.HasPrefix(strings.ToUpper(sql), "BEGIN") {
+		return "BEGIN is not allowed"
+	}
+	if strings.HasPrefix(strings.ToUpper(sql), "COMMIT") {
+		return "COMMIT is not allowed"
+	}
+	if strings.HasPrefix(strings.ToUpper(sql), "ROLLBACK") {
+		return "ROLLBACK is not allowed"
+	}
+	return ""
+}
+
 // Handler for the POST. Receives the body of the HTTP request, parses it
 // and executes the transaction on the database retrieved from the URL path.
 // Constructs and sends the response.
@@ -289,6 +302,12 @@ func handler(c *fiber.Ctx) error {
 			sql = txItem.Query
 		} else {
 			sql = txItem.Statement
+		}
+
+		// Sanitize: BEGIN, COMMIT and ROLLBACK aren't allowed
+		if errStr := ckSQL(sql); errStr != "" {
+			reportError(errors.New("errStr"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+			continue
 		}
 
 		// Processes a stored statement

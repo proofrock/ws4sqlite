@@ -1222,3 +1222,59 @@ func TestUnicode(t *testing.T) {
 
 	Shutdown()
 }
+
+func TestFailBegin(t *testing.T) {
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "test1",
+				Path: ":memory:",
+				InitStatements: []string{
+					"CREATE TABLE T (TXT TEXT)",
+				},
+			},
+		},
+	}
+
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	req := request{
+		Transaction: []requestItem{
+			{
+				NoFail:    true,
+				Statement: "BEGIN",
+			},
+			{
+				NoFail:    true,
+				Statement: "COMMIT",
+			},
+			{
+				NoFail:    true,
+				Statement: "ROLLBACK",
+			},
+		},
+	}
+
+	code, _, res := call("test1", req, t)
+	if code != 200 {
+		t.Error("request failed, but shouldn't have")
+	}
+
+	if res.Results[0].Success {
+		t.Error("BEGIN succeeds, but shouldn't have")
+	}
+	if res.Results[1].Success {
+		t.Error("COMMIT succeeds, but shouldn't have")
+	}
+	if res.Results[2].Success {
+		t.Error("ROLLBACK succeeds, but shouldn't have")
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}
