@@ -35,7 +35,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "0.11.1-wip"
+const version = "0.11.1"
 
 // Simply prints an header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
