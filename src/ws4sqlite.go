@@ -72,6 +72,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		// I think... some timeouts expire, but for a long time anyway. In normal
 		// operations it's of course desirable.
 		DisableKeepalive: disableKeepAlive4Tests,
+		Network:          fiber.NetworkTCP,
 	})
 	// This intercepts the panics, and delegates them to the ErrorHandler.
 	// See the comments to errHandler() to see why.
