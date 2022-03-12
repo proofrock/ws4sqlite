@@ -35,7 +35,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "0.11.1"
+const version = "0.11.2"
 
 // Simply prints an header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
@@ -72,6 +72,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		// I think... some timeouts expire, but for a long time anyway. In normal
 		// operations it's of course desirable.
 		DisableKeepalive: disableKeepAlive4Tests,
+		Network:          fiber.NetworkTCP,
 	})
 	// This intercepts the panics, and delegates them to the ErrorHandler.
 	// See the comments to errHandler() to see why.
