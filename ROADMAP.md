@@ -2,7 +2,7 @@
 
 ### From issue tracker
 
-- (See #1) Start ws4sqlite without specifying a db, then manage creation/deletion via REST:
+- (See #2) Start ws4sqlite without specifying a db, then manage creation/deletion via REST:
 
 ```
 PUT http://localhost:12321/mynewdatabase # Creates db
