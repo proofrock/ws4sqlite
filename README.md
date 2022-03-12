@@ -52,10 +52,11 @@ Obtaining an answer of
 
 [Docs](https://germ.gitbook.io/ws4sqlite/) and a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial).
 
+- Aligned to [**SQLite 3.38.0**](https://sqlite.org/releaselog/3_38_0.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
-- [**In-memory DBs**] are supported (https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#path);
+- [**In-memory DBs**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#path)  are supported;
 - Serving of [**multiple databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) in the same server instance;
 - [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple value sets for a single statement;
 - All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);
@@ -69,7 +70,7 @@ Obtaining an answer of
 - [Quite fast](features/performances.md)!
 - Compact codebase (~900 lines of code);
 - Comprehensive test suite (`make do-test`);
-- [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), both for amd64 and arm32.
+- [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), for amd64, arm and arm64.
 
 # Security Features
 

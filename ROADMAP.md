@@ -19,3 +19,6 @@ DELETE http://localhost:12321/mynewdatabase # Deletes db
 - Compile in sqlite's extensions
 - Drivers with "native" APIs (JDBC, Go SQL...)
 
+## Others
+
+- Client library for Deno
