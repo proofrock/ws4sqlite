@@ -74,10 +74,6 @@ func parseCLI() config {
 	}
 
 	for i := range dbFiles {
-		if !strings.HasSuffix(dbFiles[i], ".db") {
-			mllog.Fatal("database file must end with .db")
-		}
-
 		// resolves '~'
 		dbFiles[i], err = homedir.Expand(dbFiles[i])
 		if err != nil {

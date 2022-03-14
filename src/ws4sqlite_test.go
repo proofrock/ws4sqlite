@@ -1278,3 +1278,51 @@ func TestFailBegin(t *testing.T) {
 
 	Shutdown()
 }
+
+func TestExoticSuffixes(t *testing.T) {
+	os.Remove("../test/test.sqlite3")
+	defer os.Remove("../test/test.sqlite3")
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "test",
+				Path: "../test/test.sqlite3",
+				StoredStatement: []storedStatement{
+					{
+						Id:  "Q",
+						Sql: "SELECT 1",
+					},
+				},
+			},
+		},
+	}
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	if !fileExists("../test/test.sqlite3") {
+		t.Error("db file not created")
+		return
+	}
+
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL TEXT NOT NULL)",
+			},
+		},
+	}
+
+	code, _, _ := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}
