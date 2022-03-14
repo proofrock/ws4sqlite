@@ -3,8 +3,8 @@ build-prepare:
 	mkdir bin
 
 cleanup:
-	rm -rf bin
-	rm -f src/ws4sqlite
+	- rm -r bin
+	- rm src/ws4sqlite
 
 build:
 	make build-prepare
