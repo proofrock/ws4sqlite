@@ -50,7 +50,7 @@ Obtaining an answer of
 
 # Features
 
-[Docs](https://germ.gitbook.io/ws4sqlite/) and a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial).
+[Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
 - Aligned to [**SQLite 3.38.0**](https://sqlite.org/releaselog/3_38_0.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
@@ -89,6 +89,10 @@ Some design choices:
 * Very thin layer over SQLite. Errors and type translation, for example, are those provided by the SQLite driver;
 * Doesn't include HTTPS, as this can be done easily (and much more securely) with a [reverse proxy](documentation/security.md#use-a-reverse-proxy-if-going-on-the-internet);
 * Doesn't support SQLite extensions, to improve portability.
+
+# Contacts and Support
+
+Let's meet on [Discord](https://discord.gg/nBCcq2VQPu)!
 
 # Credits
 
