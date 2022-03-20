@@ -402,5 +402,5 @@ func handler(c *fiber.Ctx) error {
 
 	c.Set("Content-Type", "application/json")
 
-	return c.Send(bytes)
+	return c.Status(200).Send(bytes)
 }
