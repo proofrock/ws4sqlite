@@ -105,4 +105,6 @@ Many thanks and all the credits to these awesome projects:
 - [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
 - [wI2L's jettison](https://github.com/wI2L/jettison) (MIT License)
 - [DataDog's zstd](https://github.com/DataDog/zstd) (Simplified BSD license);
-- and of course, [Google Go](https://go.dev), [VS Code](https://code.visualstudio.com) and [CodeServer](https://github.com/coder/code-server)!
+- and of course, [Google Go](https://go.dev).
+
+Kindly supported by [JetBrains for Open Source development](https://jb.gg/OpenSourceSupport)
