@@ -17,10 +17,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
-	"net/http"
+	"github.com/gofiber/fiber/v2"
 	"os"
 	"sync"
 	"testing"
@@ -29,7 +27,7 @@ import (
 	mllog "github.com/proofrock/go-mylittlelogger"
 )
 
-const concurrency = 1024
+const concurrency = 64
 
 func TestMain(m *testing.M) {
 	println("Go...")
@@ -42,7 +40,7 @@ func TestMain(m *testing.M) {
 }
 
 func Shutdown() {
-	stopMaint()
+	// stopMaint()
 	if len(dbs) > 0 {
 		mllog.StdOut("Closing databases...")
 		for i := range dbs {
@@ -64,29 +62,27 @@ func callBA(databaseId string, req request, user, password string, t *testing.T)
 		t.Error(err)
 	}
 
-	client := &http.Client{}
-	post, err := http.NewRequest("POST", "http://localhost:12321/"+databaseId, bytes.NewBuffer(json_data))
-	if err != nil {
-		t.Error(err)
-	}
+	client := &fiber.Client{}
+	post := client.Post("http://localhost:12321/"+databaseId).
+		Body(json_data).
+		Set("Content-Type", "application/json")
+
 	if user != "" {
-		post.SetBasicAuth(user, password)
-	}
-	post.Header.Add("Content-Type", "application/json")
-	resp, err := client.Do(post)
-	if err != nil {
-		t.Error(err)
+		post = post.BasicAuth(user, password)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Error(err)
+	code, bodyBytes, errs := post.Bytes()
+
+	if errs != nil && len(errs) > 0 {
+		t.Error(errs[0])
 	}
-	defer resp.Body.Close()
 
 	var res response
-	json.Unmarshal(body, &res)
-	return resp.StatusCode, string(body), res
+	if err := json.Unmarshal(bodyBytes, &res); code == 200 && err != nil {
+		println(string(bodyBytes))
+		t.Error(err)
+	}
+	return code, string(bodyBytes), res
 }
 
 func call(databaseId string, req request, t *testing.T) (int, string, response) {
