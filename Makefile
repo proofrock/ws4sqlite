@@ -1,3 +1,5 @@
+.PHONY: test
+
 build-prepare:
 	make cleanup
 	mkdir bin
@@ -24,7 +26,7 @@ zbuild-nostatic:
 	make build-nostatic
 	cd bin; 7zr a -mx9 -t7z ws4sqlite-v0.11.2-`uname -s|tr '[:upper:]' '[:lower:]'`-`uname -m`.7z ws4sqlite
 
-do-test:
+test:
 	cd src; go test -v -timeout 5m
 
 docker:
