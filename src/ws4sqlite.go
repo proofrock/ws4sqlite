@@ -19,6 +19,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/wI2L/jettison"
 	"os"
 	"strings"
 	"sync"
@@ -68,6 +69,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	app = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler:          errHandler,
+		// I use Jettyson to encode JSON because I want to be able to encode an empty resultset
+		// but exclude a nil one from the resulting JSON; problem is, omitempty will exclude
+		// both, so I use Jettison that allows a "omitnil" parameter that has the desired effect.
+		JSONEncoder: jettison.Marshal,
 		// This is because with keep alive on, in tests, the shutdown hangs until...
 		// I think... some timeouts expire, but for a long time anyway. In normal
 		// operations it's of course desirable.

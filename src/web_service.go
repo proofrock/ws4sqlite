@@ -26,7 +26,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/proofrock/crypgo"
-	"github.com/wI2L/jettison"
 )
 
 // Catches the panics and converts the argument in a struct that Fiber uses to
@@ -48,15 +47,7 @@ func errHandler(c *fiber.Ctx, err error) error {
 		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
 	}
 
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		// FIXME possible endless recursion? Unlikely, if jettison does its job
-		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	}
-
-	c.Set("Content-Type", "application/json")
-
-	return c.Status(ret.Code).Send(bytes)
+	return c.Status(ret.Code).JSON(ret)
 }
 
 // Scans the values for a db request and encrypts them as needed
@@ -396,17 +387,7 @@ func handler(c *fiber.Ctx) error {
 		}
 	}
 
-	// I use Jettyson to encode JSON because I want to be able to encode an empty resultset
-	// but exclude a nil one from the resulting JSON; problem is, omitempty will exclude
-	// both, so I use Jettison that allows a "omitnil" parameter that has the desired effect.
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
-	}
-
 	tainted = false
 
-	c.Set("Content-Type", "application/json")
-
-	return c.Status(200).Send(bytes)
+	return c.Status(200).JSON(ret)
 }
