@@ -36,7 +36,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.11.2"
+const version = "0.11.3"
 
 // Simply prints an header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the

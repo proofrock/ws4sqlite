@@ -1,4 +1,4 @@
-## v0.12.0
+## v0.11.3
 
 - Any file extension is now allowed [addresses #4]
 - Migration from mattn/go-sqlite3 to modernc.org/sqlite
