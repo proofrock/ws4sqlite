@@ -9,7 +9,7 @@ WORKDIR /app
 ENV GOPATH /app
 RUN git clone https://github.com/proofrock/ws4sqlite
 WORKDIR /app/ws4sqlite
-RUN build-nostatic
+RUN make build-nostatic
 
 FROM alpine:latest
 
