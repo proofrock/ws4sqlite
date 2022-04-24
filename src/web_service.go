@@ -21,7 +21,6 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -201,15 +200,10 @@ func ckSQL(sql string) string {
 	return ""
 }
 
-var mutex sync.Mutex
-
 // Handler for the POST. Receives the body of the HTTP request, parses it
 // and executes the transaction on the database retrieved from the URL path.
 // Constructs and sends the response.
 func handler(c *fiber.Ctx) error {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	var body request
 	if err := c.BodyParser(&body); err != nil {
 		return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
@@ -225,12 +219,14 @@ func handler(c *fiber.Ctx) error {
 		return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
 	}
 
+	// Execute non-concurrently
+	db.Mutex.Lock()
+	defer db.Mutex.Unlock()
+
 	if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeInline {
 		if err := applyAuth(&db, &body); err != nil {
-			// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
-			db.Mutex.Lock()
+			// When unauthenticated waits for 1s to hinder brute force attacks
 			time.Sleep(time.Second)
-			db.Mutex.Unlock()
 			return newWSError(-1, fiber.StatusUnauthorized, err.Error())
 		}
 	}
