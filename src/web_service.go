@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -209,10 +210,15 @@ func ckSQL(sql string) string {
 	return ""
 }
 
+var mutex sync.Mutex
+
 // Handler for the POST. Receives the body of the HTTP request, parses it
 // and executes the transaction on the database retrieved from the URL path.
 // Constructs and sends the response.
 func handler(c *fiber.Ctx) error {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	var body request
 	if err := c.BodyParser(&body); err != nil {
 		return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())

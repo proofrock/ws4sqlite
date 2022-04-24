@@ -2,7 +2,7 @@ src/ws4sqlite
 bin/
 .vscode/
 .idea/
-/notes
+/notes.md
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,macos,linux,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,macos,linux,windows
