@@ -101,10 +101,10 @@ Many thanks and all the credits to these awesome projects:
 - [lnquy's cron](https://github.com/lnquy/cron) (MIT License);
 - [robfig's cron](https://github.com/robfig/cron) (MIT License);
 - [gofiber's fiber](https://github.com/gofiber/fiber) (MIT License);
+- [klauspost's compress](https://github.com/klauspost/compress) (3-Clause BSD license);
 - [mitchellh's go-homedir](https://github.com/mitchellh/go-homedir) (MIT License);
-- [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
+- [modernc.org's sqlite](https://gitlab.com/cznic/sqlite) (3-Clause BSD License);
 - [wI2L's jettison](https://github.com/wI2L/jettison) (MIT License)
-- [DataDog's zstd](https://github.com/DataDog/zstd) (Simplified BSD license);
 - and of course, [Google Go](https://go.dev).
 
 Kindly supported by [JetBrains for Open Source development](https://jb.gg/OpenSourceSupport)
