@@ -293,24 +293,24 @@ func handler(c *fiber.Ctx) error {
 			continue
 		}
 
-		var sql string
+		var sqll string
 
 		if hasResultSet {
-			sql = txItem.Query
+			sqll = txItem.Query
 		} else {
-			sql = txItem.Statement
+			sqll = txItem.Statement
 		}
 
 		// Sanitize: BEGIN, COMMIT and ROLLBACK aren't allowed
-		if errStr := ckSQL(sql); errStr != "" {
+		if errStr := ckSQL(sqll); errStr != "" {
 			reportError(errors.New("errStr"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 			continue
 		}
 
 		// Processes a stored statement
-		if strings.HasPrefix(sql, "#") {
+		if strings.HasPrefix(sqll, "#") {
 			var ok bool
-			sql, ok = db.StoredStatsMap[sql[1:]]
+			sqll, ok = db.StoredStatsMap[sqll[1:]]
 			if !ok {
 				reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
@@ -342,7 +342,7 @@ func handler(c *fiber.Ctx) error {
 				valuesBatch = append(valuesBatch, values)
 			}
 
-			retE, err := processForExecBatch(tx, sql, valuesBatch)
+			retE, err := processForExecBatch(tx, sqll, valuesBatch)
 			if err != nil {
 				reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 				continue
@@ -367,7 +367,7 @@ func handler(c *fiber.Ctx) error {
 			if hasResultSet {
 				// Query
 				// Externalized in a func so that defer rows.Close() actually runs
-				retWR, err := processWithResultSet(tx, sql, txItem.Decoder, values)
+				retWR, err := processWithResultSet(tx, sqll, txItem.Decoder, values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -376,7 +376,7 @@ func handler(c *fiber.Ctx) error {
 				ret.Results[i] = *retWR
 			} else {
 				// Statement
-				retE, err := processForExec(tx, sql, values)
+				retE, err := processForExec(tx, sqll, values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
