@@ -52,7 +52,7 @@ Obtaining an answer of
 
 [Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
-- Aligned to [**SQLite 3.38.0**](https://sqlite.org/releaselog/3_38_0.html);
+- Aligned to [**SQLite 3.38.2**](https://sqlite.org/releaselog/3_38_2.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
@@ -67,9 +67,10 @@ Obtaining an answer of
 - Builtin [**encryption**](https://germ.gitbook.io/ws4sqlite/documentation/encryption) of fields, given a symmetric key;
 - Provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
 - [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
-- [Quite fast](features/performances.md)!
-- Compact codebase (~900 lines of code);
-- Comprehensive test suite (`make do-test`);
+- [**Quite fast**](features/performances.md)!
+- Compact codebase;
+- Comprehensive test suite (`make test`);
+- 9 os's/arch's directly supported;
 - [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), for amd64, arm and arm64.
 
 # Security Features
@@ -101,8 +102,10 @@ Many thanks and all the credits to these awesome projects:
 - [lnquy's cron](https://github.com/lnquy/cron) (MIT License);
 - [robfig's cron](https://github.com/robfig/cron) (MIT License);
 - [gofiber's fiber](https://github.com/gofiber/fiber) (MIT License);
+- [klauspost's compress](https://github.com/klauspost/compress) (3-Clause BSD license);
 - [mitchellh's go-homedir](https://github.com/mitchellh/go-homedir) (MIT License);
-- [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
+- [modernc.org's sqlite](https://gitlab.com/cznic/sqlite) (3-Clause BSD License);
 - [wI2L's jettison](https://github.com/wI2L/jettison) (MIT License)
-- [DataDog's zstd](https://github.com/DataDog/zstd) (Simplified BSD license);
-- and of course, [Google Go](https://go.dev), [VS Code](https://code.visualstudio.com) and [CodeServer](https://github.com/coder/code-server)!
+- and of course, [Google Go](https://go.dev).
+
+Kindly supported by [JetBrains for Open Source development](https://jb.gg/OpenSourceSupport)

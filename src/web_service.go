@@ -25,7 +25,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/proofrock/crypgo"
-	"github.com/wI2L/jettison"
 )
 
 // Catches the panics and converts the argument in a struct that Fiber uses to
@@ -47,15 +46,7 @@ func errHandler(c *fiber.Ctx, err error) error {
 		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
 	}
 
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		// FIXME possible endless recursion? Unlikely, if jettison does its job
-		return errHandler(c, newWSError(-1, fiber.StatusInternalServerError, err.Error()))
-	}
-
-	c.Set("Content-Type", "application/json")
-
-	return c.Status(ret.Code).Send(bytes)
+	return c.Status(ret.Code).JSON(ret)
 }
 
 // Scans the values for a db request and encrypts them as needed
@@ -228,12 +219,14 @@ func handler(c *fiber.Ctx) error {
 		return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
 	}
 
+	// Execute non-concurrently
+	db.Mutex.Lock()
+	defer db.Mutex.Unlock()
+
 	if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeInline {
 		if err := applyAuth(&db, &body); err != nil {
-			// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
-			db.Mutex.Lock()
+			// When unauthenticated waits for 1s to hinder brute force attacks
 			time.Sleep(time.Second)
-			db.Mutex.Unlock()
 			return newWSError(-1, fiber.StatusUnauthorized, err.Error())
 		}
 	}
@@ -296,24 +289,24 @@ func handler(c *fiber.Ctx) error {
 			continue
 		}
 
-		var sql string
+		var sqll string
 
 		if hasResultSet {
-			sql = txItem.Query
+			sqll = txItem.Query
 		} else {
-			sql = txItem.Statement
+			sqll = txItem.Statement
 		}
 
 		// Sanitize: BEGIN, COMMIT and ROLLBACK aren't allowed
-		if errStr := ckSQL(sql); errStr != "" {
+		if errStr := ckSQL(sqll); errStr != "" {
 			reportError(errors.New("errStr"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 			continue
 		}
 
 		// Processes a stored statement
-		if strings.HasPrefix(sql, "#") {
+		if strings.HasPrefix(sqll, "#") {
 			var ok bool
-			sql, ok = db.StoredStatsMap[sql[1:]]
+			sqll, ok = db.StoredStatsMap[sqll[1:]]
 			if !ok {
 				reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
@@ -345,7 +338,7 @@ func handler(c *fiber.Ctx) error {
 				valuesBatch = append(valuesBatch, values)
 			}
 
-			retE, err := processForExecBatch(tx, sql, valuesBatch)
+			retE, err := processForExecBatch(tx, sqll, valuesBatch)
 			if err != nil {
 				reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 				continue
@@ -370,7 +363,7 @@ func handler(c *fiber.Ctx) error {
 			if hasResultSet {
 				// Query
 				// Externalized in a func so that defer rows.Close() actually runs
-				retWR, err := processWithResultSet(tx, sql, txItem.Decoder, values)
+				retWR, err := processWithResultSet(tx, sqll, txItem.Decoder, values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -379,7 +372,7 @@ func handler(c *fiber.Ctx) error {
 				ret.Results[i] = *retWR
 			} else {
 				// Statement
-				retE, err := processForExec(tx, sql, values)
+				retE, err := processForExec(tx, sqll, values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -390,17 +383,7 @@ func handler(c *fiber.Ctx) error {
 		}
 	}
 
-	// I use Jettyson to encode JSON because I want to be able to encode an empty resultset
-	// but exclude a nil one from the resulting JSON; problem is, omitempty will exclude
-	// both, so I use Jettison that allows a "omitnil" parameter that has the desired effect.
-	bytes, err := jettison.Marshal(ret)
-	if err != nil {
-		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
-	}
-
 	tainted = false
 
-	c.Set("Content-Type", "application/json")
-
-	return c.Send(bytes)
+	return c.Status(200).JSON(ret)
 }

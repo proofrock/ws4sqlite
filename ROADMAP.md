@@ -1,6 +1,4 @@
-# Some good ideas
-
-### From issue tracker
+### From the issue tracker
 
 - (See #2) Start ws4sqlite without specifying a db, then manage creation/deletion via REST:
 
@@ -9,6 +7,8 @@ PUT http://localhost:12321/mynewdatabase # Creates db
 POST http://localhost:12321/mynewdatabase # Queries db
 DELETE http://localhost:12321/mynewdatabase # Deletes db
 ```
+
+- (See #5) Expand the documentation on building under Windows
 
 ### From discussions ([here](https://news.ycombinator.com/item?id=30636796))
 

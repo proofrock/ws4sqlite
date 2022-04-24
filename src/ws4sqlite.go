@@ -19,6 +19,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/wI2L/jettison"
 	"os"
 	"strings"
 	"sync"
@@ -32,10 +33,10 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/mitchellh/go-homedir"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
-const version = "0.11.2"
+const version = "0.11.3"
 
 // Simply prints an header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
@@ -68,6 +69,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	app = fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		ErrorHandler:          errHandler,
+		// I use Jettyson to encode JSON because I want to be able to encode an empty resultset
+		// but exclude a nil one from the resulting JSON; problem is, omitempty will exclude
+		// both, so I use Jettison that allows a "omitnil" parameter that has the desired effect.
+		JSONEncoder: jettison.Marshal,
 		// This is because with keep alive on, in tests, the shutdown hangs until...
 		// I think... some timeouts expire, but for a long time anyway. In normal
 		// operations it's of course desirable.
@@ -118,16 +123,14 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		// Is the database new? Later I'll have to create the InitStatements
 		toCreate := isMemory || !fileExists(database.Path)
 
-		// Compose the Connection String to the SQLite db. Use options as defined
-		// by go-sqlite3 (https://github.com/mattn/go-sqlite3#connection-string)
 		connString := database.Path
 		var options []string
 		if database.ReadOnly {
 			// Several ways to be read-only...
-			options = append(options, "mode=ro", "immutable=1", "_query_only=1")
+			options = append(options, "_pragma=query_only(true)")
 		}
 		if !database.DisableWALMode {
-			options = append(options, "_journal=WAL")
+			options = append(options, "_pragma=journal_mode(WAL)")
 		}
 		if len(options) > 0 {
 			connString = connString + "?" + strings.Join(options, "&")
@@ -178,19 +181,13 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		// Opens the DB and adds it to the structure
-		dbObj, err := sql.Open("sqlite3", connString)
+		dbObj, err := sql.Open("sqlite", connString)
 		if err != nil {
 			mllog.Fatal(err.Error())
 		}
 		// This method returns when the application exits. As per https://github.com/mattn/go-sqlite3/issues/1008,
 		// it's not necessary to Close() the _db. The file remains consistent, and the pointers and locks are freed,
 		// of course.
-
-		// For concurrent writes, see  https://stackoverflow.com/questions/35804884/sqlite-concurrent-writing-performance
-		// If WAL is disabled, disable concurrency; see https://sqlite.org/wal.html
-		if !database.ReadOnly || database.DisableWALMode {
-			dbObj.SetMaxOpenConns(1)
-		}
 
 		// Executes a query on the DB, to create the file if not present
 		// and report general errors as soon as possible.
@@ -230,11 +227,6 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 		// Parsing of the maintenance plan
 		if database.Maintenance != nil {
-			if database.ReadOnly {
-				// Actually it's a limit of SQLite, in a read-only db neither VACUUM nor VACUUM INTO
-				// (used to do backups) work. Maybe we are over-configuring when read only?
-				mllog.Fatalf("'%s': a db cannot be read only and have a maintenance plan", database.Id)
-			}
 			parseMaint(&database)
 		}
 

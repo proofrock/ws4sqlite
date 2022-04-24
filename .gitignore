@@ -1,10 +1,11 @@
 src/ws4sqlite
 bin/
 .vscode/
-/notes
+.idea/
+/notes.md
 
-# Created by https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,macos,linux
-# Edit at https://www.toptal.com/developers/gitignore?templates=go,visualstudiocode,macos,linux
+# Created by https://www.toptal.com/developers/gitignore/api/go,macos,linux,windows
+# Edit at https://www.toptal.com/developers/gitignore?templates=go,macos,linux,windows
 
 ### Go ###
 # If you prefer the allow list template instead of the deny list, see community template:
@@ -77,25 +78,30 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-### VisualStudioCode ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+### Windows ###
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
 
-# Local History for Visual Studio Code
-.history/
+# Dump file
+*.stackdump
 
-# Built Visual Studio Code Extensions
-*.vsix
+# Folder config file
+[Dd]esktop.ini
 
-### VisualStudioCode Patch ###
-# Ignore all local history of files
-.history
-.ionide
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
 
-# Support for Project snippet scope
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
 
-# End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode,macos,linux
+# Windows shortcuts
+*.lnk
+
+# End of https://www.toptal.com/developers/gitignore/api/go,macos,linux,windows
