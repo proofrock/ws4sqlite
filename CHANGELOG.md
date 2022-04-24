@@ -15,5 +15,6 @@
 - Usage of Go 1.18 
 - New target (`make zbuild-all`) to cross-compile binaries
   - New targets linux/riscv64, windows/arm64 and freebsd/amd64 
+- Unified docker builds for AMD64, ARM and ARM64 (under the same tag)
 - Several updates to docs, libs and minor refactorings of the code
 - [#5] Better (but not complete) support of make under windows
