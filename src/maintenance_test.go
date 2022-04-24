@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/robfig/cron/v3"
 )
 
@@ -147,11 +146,6 @@ func TestMaintenance(t *testing.T) {
 func TestMaintWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
-	success := true
-
-	oldWhenFatal := mllog.WhenFatal
-	mllog.WhenFatal = func(msg string) { success = false }
-	defer func() { mllog.WhenFatal = oldWhenFatal }()
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -173,11 +167,18 @@ func TestMaintWithReadOnly(t *testing.T) {
 		},
 	}
 
+	cleanMaintFiles(cfg)
+	defer cleanMaintFiles(cfg)
+
 	go launch(cfg, true)
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Minute)
 
-	if success {
-		t.Error("did succeed, but should not have")
+	now := time.Now().Format(bkpTimeFormat)
+	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
+
+	if !fileExists(bk1) {
+		t.Error("backup file not created")
+		return
 	}
 }

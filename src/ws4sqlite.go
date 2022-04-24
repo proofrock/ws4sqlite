@@ -227,12 +227,6 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 		// Parsing of the maintenance plan
 		if database.Maintenance != nil {
-			if database.ReadOnly {
-				// Actually it's a limit of SQLite, in a read-only db neither VACUUM nor VACUUM INTO
-				// (used to do backups) work. Maybe we are over-configuring when read only?
-				// FIXME check if this is still valid after "simpler" readonly settings
-				mllog.Fatalf("'%s': a db cannot be read only and have a maintenance plan", database.Id)
-			}
 			parseMaint(&database)
 		}
 
