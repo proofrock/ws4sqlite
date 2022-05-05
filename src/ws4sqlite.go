@@ -27,16 +27,13 @@ import (
 
 	mllog "github.com/proofrock/go-mylittlelogger"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mitchellh/go-homedir"
-
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.11.3"
+const version = "0.11.4"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
