@@ -65,14 +65,14 @@ docker:
 docker-publish:
 	## Prepare system with:
 	## (verify which is latest at https://hub.docker.com/r/docker/binfmt/tags)
-	# docker run --privileged --rm docker/binfmt:a7996909642ee92942dcd6cff44b9b95f08dad64
-	sudo docker buildx build -t germanorizzo/ws4sqlite:v0.11.4-amd64 .
-	sudo docker buildx build --platform linux/arm/v7 -t germanorizzo/ws4sqlite:v0.11.4-arm .
-	sudo docker buildx build --platform linux/arm64/v8 -t germanorizzo/ws4sqlite:v0.11.4-arm64 .
+	sudo docker run --privileged --rm docker/binfmt:a7996909642ee92942dcd6cff44b9b95f08dad64
+	sudo docker buildx build --no-cache -t germanorizzo/ws4sqlite:v0.11.4-amd64 .
+	sudo docker buildx build --no-cache --platform linux/arm/v7 -t germanorizzo/ws4sqlite:v0.11.4-arm .
+	sudo docker buildx build --no-cache --platform linux/arm64/v8 -t germanorizzo/ws4sqlite:v0.11.4-arm64 .
 	sudo docker push germanorizzo/ws4sqlite:v0.11.4-amd64
 	sudo docker push germanorizzo/ws4sqlite:v0.11.4-arm
 	sudo docker push germanorizzo/ws4sqlite:v0.11.4-arm64
-	sudo docker manifest create germanorizzo/ws4sqlite:v0.11.4 germanorizzo/ws4sqlite:v0.11.4-amd64 germanorizzo/ws4sqlite:v0.11.4-arm germanorizzo/ws4sqlite:v0.11.4-arm64
+	sudo docker manifest create -a germanorizzo/ws4sqlite:v0.11.4 germanorizzo/ws4sqlite:v0.11.4-amd64 germanorizzo/ws4sqlite:v0.11.4-arm germanorizzo/ws4sqlite:v0.11.4-arm64
 	sudo docker manifest push germanorizzo/ws4sqlite:v0.11.4
-	sudo docker manifest create germanorizzo/ws4sqlite:latest germanorizzo/ws4sqlite:v0.11.4-amd64 germanorizzo/ws4sqlite:v0.11.4-arm germanorizzo/ws4sqlite:v0.11.4-arm64
+	sudo docker manifest create -a germanorizzo/ws4sqlite:latest germanorizzo/ws4sqlite:v0.11.4-amd64 germanorizzo/ws4sqlite:v0.11.4-arm germanorizzo/ws4sqlite:v0.11.4-arm64
 	sudo docker manifest push germanorizzo/ws4sqlite:latest
