@@ -1,3 +1,9 @@
+## v0.11.4
+
+- SQLite 3.38.3
+- Library updates
+- Ditch 7z format for distribution, use .tar.gz & zip instead (according to the OS)
+
 ## v0.11.3
 
 - Any file extension is now allowed [addresses #4]
