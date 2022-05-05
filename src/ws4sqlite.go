@@ -38,11 +38,31 @@ import (
 
 const version = "0.11.3"
 
+func getSQLiteVersion() (string, error) {
+	dbObj, err := sql.Open("sqlite", ":memory:")
+	defer dbObj.Close()
+	if err != nil {
+		return "", err
+	}
+	row := dbObj.QueryRow("SELECT sqlite_version()")
+	var ver string
+	err = row.Scan(&ver)
+	if err != nil {
+		return "", err
+	}
+	return ver, nil
+}
+
 // Simply prints an header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
 	mllog.StdOut("ws4sqlite ", version)
+	sqliteVersion, err := getSQLiteVersion()
+	if err != nil {
+		mllog.Fatalf("getting SQLite version: %s", err.Error())
+	}
+	mllog.StdOut("- Based on SQLite v" + sqliteVersion)
 
 	cfg := parseCLI()
 
