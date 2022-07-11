@@ -47,8 +47,10 @@ func stopMaint() {
 	scheduler = cron.New()
 }
 
-// Takes two minutes
+// Takes one minutes
 func TestMaintenance(t *testing.T) {
+	defer os.Remove("../test/test1.db")
+	defer os.Remove("../test/test2.db")
 	defer Shutdown()
 
 	cfg := config{
