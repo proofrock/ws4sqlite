@@ -81,8 +81,8 @@ var app *fiber.App
 func launch(cfg config, disableKeepAlive4Tests bool) {
 	var err error
 
-	if len(cfg.Databases) == 0 {
-		mllog.Fatal("no database specified")
+	if len(cfg.Databases) == 0 && cfg.ServeDir == nil {
+		mllog.Fatal("no database nor dir to serve specified")
 	}
 
 	// Let's create the web server
@@ -279,7 +279,12 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		if database.Auth != nil && strings.ToUpper(database.Auth.Mode) == authModeHttp {
 			app.Use(basicauth.New(basicauth.Config{
 				Next: func(c *fiber.Ctx) bool {
-					return c.Path()[1:] != database.Id
+					switch c.Method() {
+					case "POST":
+						return c.Path()[1:] != database.Id
+					default:
+						return true
+					}
 				},
 				Authorizer: func(user, password string) bool {
 					if err := applyAuthCreds(&database, user, password); err != nil {
@@ -298,13 +303,23 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		dbs[database.Id] = database
 	}
 
+	if cfg.ServeDir != nil {
+		app.Static("", *cfg.ServeDir, fiber.Static{
+			ByteRange: true,
+			Download:  true,
+		})
+		mllog.StdOutf("- Serving directory '%s'", *cfg.ServeDir)
+	}
+
 	mllog.WhenFatal = origWhenFatal
 
 	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
 	startMaint()
 
 	// Register the handler
-	app.Post("/:databaseId", handler)
+	for _, db := range cfg.Databases {
+		app.Post("/"+db.Id, handler(db.Id))
+	}
 
 	// Actually start the web server, finally
 	conn := fmt.Sprint(cfg.Bindhost, ":", cfg.Port)
