@@ -53,7 +53,7 @@ func getSQLiteVersion() (string, error) {
 	return ver, nil
 }
 
-// Simply prints an header, parses the cli parameters and calls
+// Simply prints a header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
@@ -225,7 +225,8 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 				if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
 					if !isMemory {
 						// I fail and abort, so remove the leftover file
-						// FIXME should I remove the files
+						// TODO should I remove the wal files?
+						dbObj.Close()
 						os.Remove(database.Path)
 					}
 					mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
