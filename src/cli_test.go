@@ -49,6 +49,21 @@ func TestCliEmpty(t *testing.T) {
 	assert(t, err != "", "succeeded, but shouldn't have ", err)
 }
 
+func TestCliOnlyServeDir(t *testing.T) {
+	_, err := cliTest("--serve-dir", "../test")
+	assert(t, err == "", "didn't succeed, but should have ", err)
+}
+
+func TestCliServeInvalidDir(t *testing.T) {
+	_, err := cliTest("--serve-dir", "../test_non_existent")
+	assert(t, err != "", "succeeded, but shouldn't have ", err)
+}
+
+func TestCliServeInvalidDir2(t *testing.T) {
+	_, err := cliTest("--serve-dir", "../test/mem1.yaml") // it's a file
+	assert(t, err != "", "succeeded, but shouldn't have ", err)
+}
+
 func TestCliMem(t *testing.T) {
 	cfg, err := cliTest("--mem-db", "mem1")
 	assert(t, err == "", "did not succeed ", err)
@@ -80,7 +95,7 @@ func TestCliMixed(t *testing.T) {
 }
 
 func TestConfigs(t *testing.T) {
-	cfg, err := cliTest("--db", "../test/test1.db", "--mem-db", "mem1:../test/mem1.yaml", "--mem-db", "mem2", "--db", "../test/test2.db")
+	cfg, err := cliTest("--db", "../test/test1.db", "--mem-db", "mem1:../test/mem1.yaml", "--mem-db", "mem2", "--db", "../test/test2.db", "--serve-dir", "../test")
 	assert(t, err == "", "did not succeed ", err)
 	assert(t, len(cfg.Databases) == 4, "four db should be configured")
 
@@ -145,4 +160,6 @@ func TestConfigs(t *testing.T) {
 	assert(t, cfg.Databases[3].Maintenance == nil, "the db has not the correct Maintenance value")
 	assert(t, len(cfg.Databases[3].InitStatements) == 0, "the db has not the correct number of init statements")
 	assert(t, len(cfg.Databases[3].StoredStatement) == 0, "the db has not the correct number of stored statements")
+
+	assert(t, cfg.ServeDir != nil, "a dir to serve should be configured")
 }

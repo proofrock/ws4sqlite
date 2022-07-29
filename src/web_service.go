@@ -203,126 +203,147 @@ func ckSQL(sql string) string {
 // Handler for the POST. Receives the body of the HTTP request, parses it
 // and executes the transaction on the database retrieved from the URL path.
 // Constructs and sends the response.
-func handler(c *fiber.Ctx) error {
-	var body request
-	if err := c.BodyParser(&body); err != nil {
-		return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
-	}
-
-	databaseId := c.Params("databaseId")
-	if databaseId == "" {
-		return newWSError(-1, fiber.StatusNotFound, "missing database ID")
-	}
-
-	db, found := dbs[databaseId]
-	if !found {
-		return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
-	}
-
-	// Execute non-concurrently
-	db.Mutex.Lock()
-	defer db.Mutex.Unlock()
-
-	if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeInline {
-		if err := applyAuth(&db, &body); err != nil {
-			// When unauthenticated waits for 1s to hinder brute force attacks
-			time.Sleep(time.Second)
-			return newWSError(-1, fiber.StatusUnauthorized, err.Error())
-		}
-	}
-
-	if len(body.Transaction) == 0 {
-		return newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)")
-	}
-
-	dbConn, err := db.Db.Conn(context.Background())
-	if err != nil {
-		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
-	}
-	defer dbConn.Close()
-
-	// Opens a transaction. One more occasion to specify: read only ;-)
-	tx, err := dbConn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
-	if err != nil {
-		return newWSError(-1, fiber.StatusInternalServerError, err.Error())
-	}
-
-	tainted := true // If I reach the end of the method, I switch this to false to signal success
-	defer func() {
-		if tainted {
-			tx.Rollback()
-		} else {
-			tx.Commit()
-		}
-	}()
-
-	var ret response
-	ret.Results = make([]responseItem, len(body.Transaction))
-
-	for i := range body.Transaction {
-		txItem := body.Transaction[i]
-
-		if (txItem.Query == "") == (txItem.Statement == "") {
-			reportError(errors.New("one and only one of query or statement must be provided"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-			continue
+func handler(databaseId string) func(c *fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		var body request
+		if err := c.BodyParser(&body); err != nil {
+			return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
 		}
 
-		hasResultSet := txItem.Query != ""
-
-		if hasResultSet && txItem.Encoder != nil {
-			reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-			continue
+		db, found := dbs[databaseId]
+		if !found {
+			return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
 		}
 
-		if !hasResultSet && txItem.Decoder != nil {
-			reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-			continue
-		}
+		// Execute non-concurrently
+		db.Mutex.Lock()
+		defer db.Mutex.Unlock()
 
-		if len(txItem.Values) != 0 && len(txItem.ValuesBatch) != 0 {
-			reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-			continue
-		}
-
-		if hasResultSet && len(txItem.ValuesBatch) > 0 {
-			reportError(errors.New("cannot specify valuesBatch for queries (only for statements)"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-			continue
-		}
-
-		var sqll string
-
-		if hasResultSet {
-			sqll = txItem.Query
-		} else {
-			sqll = txItem.Statement
-		}
-
-		// Sanitize: BEGIN, COMMIT and ROLLBACK aren't allowed
-		if errStr := ckSQL(sqll); errStr != "" {
-			reportError(errors.New("errStr"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-			continue
-		}
-
-		// Processes a stored statement
-		if strings.HasPrefix(sqll, "#") {
-			var ok bool
-			sqll, ok = db.StoredStatsMap[sqll[1:]]
-			if !ok {
-				reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-				continue
-			}
-		} else {
-			if db.UseOnlyStoredStatements {
-				reportError(errors.New("configured to serve only stored statements, but SQL is passed"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-				continue
+		if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeInline {
+			if err := applyAuth(&db, &body); err != nil {
+				// When unauthenticated waits for 1s to hinder brute force attacks
+				time.Sleep(time.Second)
+				return newWSError(-1, fiber.StatusUnauthorized, err.Error())
 			}
 		}
 
-		if len(txItem.ValuesBatch) > 0 {
-			// Process a batch statement (multiple values)
-			var valuesBatch []map[string]interface{}
-			for i2 := range txItem.ValuesBatch {
-				values, err := raw2vals(txItem.ValuesBatch[i2])
+		if len(body.Transaction) == 0 {
+			return newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)")
+		}
+
+		dbConn, err := db.Db.Conn(context.Background())
+		if err != nil {
+			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
+		}
+		defer dbConn.Close()
+
+		// Opens a transaction. One more occasion to specify: read only ;-)
+		tx, err := dbConn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
+		if err != nil {
+			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
+		}
+
+		tainted := true // If I reach the end of the method, I switch this to false to signal success
+		defer func() {
+			if tainted {
+				tx.Rollback()
+			} else {
+				tx.Commit()
+			}
+		}()
+
+		var ret response
+		ret.Results = make([]responseItem, len(body.Transaction))
+
+		for i := range body.Transaction {
+			txItem := body.Transaction[i]
+
+			if (txItem.Query == "") == (txItem.Statement == "") {
+				reportError(errors.New("one and only one of query or statement must be provided"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+				continue
+			}
+
+			hasResultSet := txItem.Query != ""
+
+			if hasResultSet && txItem.Encoder != nil {
+				reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+				continue
+			}
+
+			if !hasResultSet && txItem.Decoder != nil {
+				reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+				continue
+			}
+
+			if len(txItem.Values) != 0 && len(txItem.ValuesBatch) != 0 {
+				reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+				continue
+			}
+
+			if hasResultSet && len(txItem.ValuesBatch) > 0 {
+				reportError(errors.New("cannot specify valuesBatch for queries (only for statements)"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+				continue
+			}
+
+			var sqll string
+
+			if hasResultSet {
+				sqll = txItem.Query
+			} else {
+				sqll = txItem.Statement
+			}
+
+			// Sanitize: BEGIN, COMMIT and ROLLBACK aren't allowed
+			if errStr := ckSQL(sqll); errStr != "" {
+				reportError(errors.New("errStr"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+				continue
+			}
+
+			// Processes a stored statement
+			if strings.HasPrefix(sqll, "#") {
+				var ok bool
+				sqll, ok = db.StoredStatsMap[sqll[1:]]
+				if !ok {
+					reportError(errors.New("a stored statement is required, but did not find it"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+					continue
+				}
+			} else {
+				if db.UseOnlyStoredStatements {
+					reportError(errors.New("configured to serve only stored statements, but SQL is passed"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
+					continue
+				}
+			}
+
+			if len(txItem.ValuesBatch) > 0 {
+				// Process a batch statement (multiple values)
+				var valuesBatch []map[string]interface{}
+				for i2 := range txItem.ValuesBatch {
+					values, err := raw2vals(txItem.ValuesBatch[i2])
+					if err != nil {
+						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
+						continue
+					}
+
+					if txItem.Encoder != nil {
+						if err := encrypt(*txItem.Encoder, values); err != nil {
+							reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
+							continue
+						}
+					}
+
+					valuesBatch = append(valuesBatch, values)
+				}
+
+				retE, err := processForExecBatch(tx, sqll, valuesBatch)
+				if err != nil {
+					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
+					continue
+				}
+
+				ret.Results[i] = *retE
+			} else {
+				// At most one values set (be it query or statement)
+				values, err := raw2vals(txItem.Values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -335,55 +356,31 @@ func handler(c *fiber.Ctx) error {
 					}
 				}
 
-				valuesBatch = append(valuesBatch, values)
-			}
+				if hasResultSet {
+					// Query
+					// Externalized in a func so that defer rows.Close() actually runs
+					retWR, err := processWithResultSet(tx, sqll, txItem.Decoder, values)
+					if err != nil {
+						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
+						continue
+					}
 
-			retE, err := processForExecBatch(tx, sqll, valuesBatch)
-			if err != nil {
-				reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-				continue
-			}
+					ret.Results[i] = *retWR
+				} else {
+					// Statement
+					retE, err := processForExec(tx, sqll, values)
+					if err != nil {
+						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
+						continue
+					}
 
-			ret.Results[i] = *retE
-		} else {
-			// At most one values set (be it query or statement)
-			values, err := raw2vals(txItem.Values)
-			if err != nil {
-				reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-				continue
-			}
-
-			if txItem.Encoder != nil {
-				if err := encrypt(*txItem.Encoder, values); err != nil {
-					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-					continue
+					ret.Results[i] = *retE
 				}
-			}
-
-			if hasResultSet {
-				// Query
-				// Externalized in a func so that defer rows.Close() actually runs
-				retWR, err := processWithResultSet(tx, sqll, txItem.Decoder, values)
-				if err != nil {
-					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-					continue
-				}
-
-				ret.Results[i] = *retWR
-			} else {
-				// Statement
-				retE, err := processForExec(tx, sqll, values)
-				if err != nil {
-					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-					continue
-				}
-
-				ret.Results[i] = *retE
 			}
 		}
+
+		tainted = false
+
+		return c.Status(200).JSON(ret)
 	}
-
-	tainted = false
-
-	return c.Status(200).JSON(ret)
 }
