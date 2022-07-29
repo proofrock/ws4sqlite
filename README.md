@@ -52,7 +52,7 @@ Obtaining an answer of
 
 [Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
-- Aligned to [**SQLite 3.38.3**](https://sqlite.org/releaselog/3_38_3.html);
+- Aligned to [**SQLite 3.38.5**](https://sqlite.org/releaselog/3_38_5.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
@@ -68,6 +68,7 @@ Obtaining an answer of
 - Provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
 - [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
 - [**Quite fast**](features/performances.md)!
+- [**Embedded web server**](https://germ.gitbook.io/ws4sqlite/documentation/web-server) to directly serve web pages that can access ws4sqlite without CORS;
 - Compact codebase;
 - Comprehensive test suite (`make test`);
 - 9 os's/arch's directly supported;
