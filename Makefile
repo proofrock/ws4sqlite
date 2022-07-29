@@ -60,7 +60,7 @@ test:
 	cd src; go test -v -timeout 5m
 
 docker:
-	sudo docker build -t local_ws4sqlite:latest .
+	sudo docker build --no-cache -t local_ws4sqlite:latest .
 
 docker-publish:
 	## Prepare system with:
