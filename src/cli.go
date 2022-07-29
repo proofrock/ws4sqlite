@@ -54,6 +54,8 @@ func parseCLI() config {
 	var memDb arrayFlags
 	fs.Var(&memDb, "mem-db", "Repeatable; config for memory-based databases (ID[:configFilePath]).")
 
+	serveDir := fs.String("serve-dir", "", "A directory to serve with builtin HTTP server")
+
 	bindHost := fs.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
 	port := fs.Int("port", 12321, "Port for the web service (default: 12321).")
 	version := fs.Bool("version", false, "Display the version number")
@@ -68,9 +70,9 @@ func parseCLI() config {
 	var ret config
 	var err error
 
-	// It is also tested later, but fail fast
-	if len(dbFiles)+len(memDb) == 0 {
-		mllog.Fatal("no database specified")
+	// Fail fast
+	if len(dbFiles)+len(memDb) == 0 && *serveDir == "" {
+		mllog.Fatal("no database and no dir to serve specified")
 	}
 
 	for i := range dbFiles {
@@ -137,6 +139,13 @@ func parseCLI() config {
 		dbConfig.Id = id
 		dbConfig.Path = ":memory:"
 		ret.Databases = append(ret.Databases, dbConfig)
+	}
+
+	if *serveDir != "" {
+		if !dirExists(*serveDir) {
+			mllog.Fatalf("directory to serve as HTTP does not exist: %s", *serveDir)
+		}
+		ret.ServeDir = serveDir
 	}
 
 	// embed the cli parameters in the config

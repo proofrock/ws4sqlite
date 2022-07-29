@@ -37,6 +37,15 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+// Does a dir exist? No error returned.
+func dirExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
+}
+
 // Maps the raw JSON messages to a proper map, to manage unstructured JSON parsing;
 // see https://noamt.medium.com/using-gos-json-rawmessage-a2371a1c11b7
 func raw2vals(raw map[string]json.RawMessage) (map[string]interface{}, error) {
