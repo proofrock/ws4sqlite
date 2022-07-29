@@ -306,7 +306,6 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	if cfg.ServeDir != nil {
 		app.Static("", *cfg.ServeDir, fiber.Static{
 			ByteRange: true,
-			Download:  true,
 		})
 		mllog.StdOutf("- Serving directory '%s'", *cfg.ServeDir)
 	}
