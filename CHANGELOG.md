@@ -1,5 +1,11 @@
-## v0.12.0 
-*2022-07-29*
+## v0.12.1
+*2022-08-12, Pulau Mabul*
+
+- SQLite 3.39.2
+- Library updates
+
+## v0.12.0
+*2022-07-29, Kota Kinabalu*
 
 - SQLite 3.38.5
 - Embedded Web Server, [docs here](https://germ.gitbook.io/ws4sqlite/documentation/web-server)
