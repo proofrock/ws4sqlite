@@ -52,7 +52,7 @@ Obtaining an answer of
 
 [Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
-- Aligned to [**SQLite 3.38.5**](https://sqlite.org/releaselog/3_38_5.html);
+- Aligned to [**SQLite 3.39.2**](https://sqlite.org/releaselog/3_39_2.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
