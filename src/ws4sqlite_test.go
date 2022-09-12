@@ -1322,3 +1322,84 @@ func TestExoticSuffixes(t *testing.T) {
 
 	Shutdown()
 }
+
+func TestFileServer(t *testing.T) {
+	serveDir := "../test/"
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		ServeDir: &serveDir,
+	}
+	go launch(cfg, true)
+	time.Sleep(time.Second)
+	client := &fiber.Client{}
+	get := client.Get("http://localhost:12321/mem1.yaml")
+
+	code, _, errs := get.String()
+
+	if errs != nil && len(errs) > 0 {
+		t.Error(errs[0])
+	}
+
+	if code != 200 {
+		t.Error("did not succeed")
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}
+
+func TestFileServerKO(t *testing.T) {
+	serveDir := "../test/"
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		ServeDir: &serveDir,
+	}
+	go launch(cfg, true)
+	time.Sleep(time.Second)
+	client := &fiber.Client{}
+	get := client.Get("http://localhost:12321/mem1_nonexistent.yaml")
+
+	code, _, errs := get.String()
+
+	if errs != nil && len(errs) > 0 {
+		t.Error(errs[0])
+	}
+
+	if code != 404 {
+		t.Error("did not fail")
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}
+
+func TestFileServerWithOverlap(t *testing.T) {
+	serveDir := "../test/"
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		ServeDir: &serveDir,
+	}
+	go launch(cfg, true)
+	time.Sleep(time.Second)
+	client := &fiber.Client{}
+	get := client.Get("http://localhost:12321/test1")
+
+	code, _, errs := get.String()
+
+	if errs != nil && len(errs) > 0 {
+		t.Error(errs[0])
+	}
+
+	if code != 200 {
+		t.Error("did not succeed")
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}

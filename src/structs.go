@@ -89,6 +89,7 @@ type config struct {
 	Bindhost  string
 	Port      int
 	Databases []db
+	ServeDir  *string
 }
 
 // These are for parsing the request (from JSON)
