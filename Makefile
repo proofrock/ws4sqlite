@@ -55,6 +55,9 @@ zbuild-all:
 	cd src; CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build
 	cd src; tar czf ../bin/ws4sqlite-v0.12.2-freebsd-amd64.tar.gz ws4sqlite
 	rm src/ws4sqlite
+	cd src; CGO_ENABLED=0 GOOS=freebsd GOARCH=arm64 go build
+	cd src; tar czf ../bin/ws4sqlite-v0.12.2-freebsd-arm64.tar.gz ws4sqlite
+	rm src/ws4sqlite
 
 test:
 	cd src; go test -v -timeout 5m
