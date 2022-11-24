@@ -1,3 +1,9 @@
+## v0.12.3
+*2022-11-24, Hội An*
+
+- SQLite 3.39.4
+- Library updates
+
 ## v0.12.2
 *2022-09-12, Venice*
 
