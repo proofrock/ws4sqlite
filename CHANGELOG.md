@@ -1,3 +1,9 @@
+## v0.12.5
+*2023-1-14, Venice*
+
+- SQLite 3.40.1
+- Library updates
+
 ## v0.12.4
 *2022-12-19, Venice*
 
