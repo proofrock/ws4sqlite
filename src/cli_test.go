@@ -80,6 +80,27 @@ func TestCliFile(t *testing.T) {
 	assert(t, cfg.Databases[0].Path == "../test/test.db", "the db has not the correct Path")
 }
 
+func TestCliShortFileName(t *testing.T) {
+	cfg, err := cliTest("--db", "../test/a")
+	assert(t, err == "", "did not succeed ", err)
+	assert(t, cfg.Databases[0].Id == "a", "the db has a wrong id ", err)
+}
+
+func TestCliDifferentExtension(t *testing.T) {
+	cfg, err := cliTest("--db", "../test/a.sqlite")
+	assert(t, err == "", "did not succeed ", err)
+	assert(t, cfg.Databases[0].Id == "a", "the db has a wrong id ", err)
+
+	cfg, err = cliTest("--db", "../test/a.b")
+	assert(t, err == "", "did not succeed ", err)
+	assert(t, cfg.Databases[0].Id == "a", "the db has a wrong id ", err)
+}
+
+func TestCliOnlyExtension(t *testing.T) {
+	_, err := cliTest("--db", "../test/.db")
+	assert(t, err != "", "did succeed, but it shouldn't have ", err)
+}
+
 func TestCliMixed(t *testing.T) {
 	cfg, err := cliTest("--db", "../test/test1.db", "--mem-db", "mem1", "--mem-db", "mem2", "--db", "../test/test2.db")
 	assert(t, err == "", "did not succeed ", err)

@@ -83,8 +83,13 @@ func parseCLI() config {
 		}
 
 		dir := filepath.Dir(dbFiles[i])
-		id := filepath.Base(dbFiles[i])
-		id = id[0 : len(id)-3]
+
+		//strips the extension from the file name (see issue #11)
+		id := strings.TrimSuffix(filepath.Base(dbFiles[i]), filepath.Ext(dbFiles[i]))
+
+		if len(id) == 0 {
+			mllog.Fatal("base filename cannot be empty")
+		}
 
 		yamlFile := filepath.Join(dir, id+".yaml")
 

@@ -1,3 +1,17 @@
+## v0.12.5
+*2023-1-14, Venice*
+
+- SQLite 3.40.1
+- Library updates
+
+## v0.12.4
+*2022-12-19, Venice*
+
+- Issue #11: runtime error: slice bounds out of range [:-1]
+- Issue #12: Hardcoded path in error message
+- SQLite 3.40.0
+- Library updates
+
 ## v0.12.3
 *2022-11-24, Hội An*
 
