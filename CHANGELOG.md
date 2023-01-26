@@ -1,8 +1,15 @@
-## v0.12.6
+## v0.12.7
+*2023-1-26, Venice*
+
+- Issue #14: "Method not allowed" when calling OPTION in CORS preflight
+
+## ~~v0.12.6~~
 *2023-1-26, Venice*
 
 - Issue #13: Middlewares activation is not correct
 - Library updates
+
+**IMPORTANT**: this version is broken, see #14
 
 ## v0.12.5
 *2023-1-14, Venice*
