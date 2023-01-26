@@ -1,3 +1,9 @@
+## v0.12.6
+*2023-1-26, Venice*
+
+- Issue #13: Middlewares activation is not correct
+- Library updates
+
 ## v0.12.5
 *2023-1-14, Venice*
 
