@@ -274,7 +274,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 		if db.CORSOrigin != "" {
 			handlers = append(handlers, cors.New(cors.Config{
-				AllowMethods: "POST",
+				AllowMethods: "POST,OPTIONS",
 				AllowOrigins: db.CORSOrigin,
 			}))
 
@@ -300,6 +300,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		handlers = append(handlers, handler(db.Id))
 
 		app.Post(fmt.Sprintf("/%s", db.Id), handlers...)
+
+		if db.CORSOrigin != "" {
+			app.Options(fmt.Sprintf("/%s", db.Id), handlers...)
+		}
 	}
 
 	// Actually start the web server, finally
