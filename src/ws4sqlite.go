@@ -19,24 +19,23 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/wI2L/jettison"
 	"os"
 	"strings"
 	"sync"
 	"time"
 
-	mllog "github.com/proofrock/go-mylittlelogger"
-
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/basicauth"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/mitchellh/go-homedir"
 
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.12.5"
+const version = "0.12.6"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -91,7 +90,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		ErrorHandler:          errHandler,
 		// I use Jettyson to encode JSON because I want to be able to encode an empty resultset
 		// but exclude a nil one from the resulting JSON; problem is, omitempty will exclude
-		// both, so I use Jettison that allows a "omitnil" parameter that has the desired effect.
+		// both, so I use Jettison that allows an "omitnil" parameter that has the desired effect.
 		JSONEncoder: jettison.Marshal,
 		// This is because with keep alive on, in tests, the shutdown hangs until...
 		// I think... some timeouts expire, but for a long time anyway. In normal
@@ -116,6 +115,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 	dbs = make(map[string]db)
 	for i := range cfg.Databases {
+		// beware: this variable is NOT modified in-place. Add a cfg.Databases[i] = database at the end, if need be
 		database := cfg.Databases[i]
 
 		if database.Id == "" {
@@ -251,55 +251,6 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			parseMaint(&database)
 		}
 
-		if database.CORSOrigin != "" {
-			// See if CORS is needed for this database, and adds an instance of the CORS middleware;
-			// at each call, the Next() method of each instance is called by Fiber to determine which one
-			// should actually run
-			// In the middlewares, c.Param("databaseId") doesn't work, because they are outside an handler
-			// so we just use c.Path()[1:]
-			app.Use(cors.New(cors.Config{
-				Next: func(c *fiber.Ctx) bool {
-					switch c.Method() {
-					case "POST":
-						return c.Path()[1:] != database.Id
-					case "OPTIONS":
-						return database.CORSOrigin != "*" && database.CORSOrigin != c.Get("Origin")
-					default:
-						return true
-					}
-				},
-				AllowMethods: "POST",
-				AllowOrigins: database.CORSOrigin,
-			}))
-
-			mllog.StdOut("  + CORS Origin set to ", database.CORSOrigin)
-		}
-
-		// Same here as above: Next() determines what runs, c.Path[1:] is the db ID
-		if database.Auth != nil && strings.ToUpper(database.Auth.Mode) == authModeHttp {
-			app.Use(basicauth.New(basicauth.Config{
-				Next: func(c *fiber.Ctx) bool {
-					switch c.Method() {
-					case "POST":
-						return c.Path()[1:] != database.Id
-					default:
-						return true
-					}
-				},
-				Authorizer: func(user, password string) bool {
-					if err := applyAuthCreds(&database, user, password); err != nil {
-						// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
-						database.Mutex.Lock()
-						time.Sleep(time.Second)
-						database.Mutex.Unlock()
-						mllog.Errorf("credentials not valid for user '%s'", user)
-						return false
-					}
-					return true
-				},
-			}))
-		}
-
 		dbs[database.Id] = database
 	}
 
@@ -316,8 +267,39 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	startMaint()
 
 	// Register the handler
-	for _, db := range cfg.Databases {
-		app.Post("/"+db.Id, handler(db.Id))
+	for id, _ := range dbs {
+		db := dbs[id]
+
+		var handlers []fiber.Handler
+
+		if db.CORSOrigin != "" {
+			handlers = append(handlers, cors.New(cors.Config{
+				AllowMethods: "POST",
+				AllowOrigins: db.CORSOrigin,
+			}))
+
+			mllog.StdOutf("  + CORS Origin set to %s", db.CORSOrigin)
+		}
+
+		if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeHttp {
+			handlers = append(handlers, basicauth.New(basicauth.Config{
+				Authorizer: func(user, password string) bool {
+					if err := applyAuthCreds(&db, user, password); err != nil {
+						// When unauthenticated waits for 1s, and doesn't parallelize, to hinder brute force attacks
+						db.Mutex.Lock()
+						time.Sleep(time.Second)
+						db.Mutex.Unlock()
+						mllog.Errorf("credentials not valid for user '%s'", user)
+						return false
+					}
+					return true
+				},
+			}))
+		}
+
+		handlers = append(handlers, handler(db.Id))
+
+		app.Post(fmt.Sprintf("/%s", db.Id), handlers...)
 	}
 
 	// Actually start the web server, finally
