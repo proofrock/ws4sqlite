@@ -57,10 +57,11 @@ type credentialsCfg struct {
 }
 
 type authr struct {
-	Mode          string           `yaml:"mode"` // 'INLINE' or 'HTTP'
-	ByQuery       string           `yaml:"byQuery"`
-	ByCredentials []credentialsCfg `yaml:"byCredentials"`
-	HashedCreds   map[string][]byte
+	Mode            string           `yaml:"mode"` // 'INLINE' or 'HTTP'
+	CustomErrorCode *int             `yaml:"customErrorCode"`
+	ByQuery         string           `yaml:"byQuery"`
+	ByCredentials   []credentialsCfg `yaml:"byCredentials"`
+	HashedCreds     map[string][]byte
 }
 
 type storedStatement struct {

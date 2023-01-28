@@ -79,6 +79,7 @@ Obtaining an answer of
 * [**Authentication**](documentation/security.md#authentication) can be configured
   * on the client, either using HTTP Basic Authentication or specifying the credentials in the request;
   * on the server, either by specifying credentials (also with hashed passwords) or providing a query to look them up in the db itself;
+  * customizable `Not Authorized` error code (if 401 is not optimal)
 * A database can be opened in [**read-only mode**](documentation/security.md#read-only-databases) (only queries will be allowed);
 * It's possible to enforce using [**only stored statements**](documentation/security.md#stored-statements-to-prevent-sql-injection), to avoid some forms of SQL injection and receiving SQL from the client altogether;
 * [**CORS Allowed Origin**](documentation/security.md#cors-allowed-origin) can be configured and enforced;

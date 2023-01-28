@@ -19,8 +19,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/wI2L/jettison"
 	"os"
@@ -28,14 +30,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mitchellh/go-homedir"
-
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.12.7"
+const version = "0.13.0-dev"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -293,6 +292,12 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 						return false
 					}
 					return true
+				},
+				Unauthorized: func(c *fiber.Ctx) error {
+					if db.Auth.CustomErrorCode != nil {
+						return c.Status(*db.Auth.CustomErrorCode).SendString("Unauthorized")
+					}
+					return c.SendStatus(fiber.StatusUnauthorized)
 				},
 			}))
 		}
