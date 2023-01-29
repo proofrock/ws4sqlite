@@ -250,6 +250,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			parseMaint(&database)
 		}
 
+		if database.CORSOrigin != "" {
+			mllog.StdOutf("  + CORS Origin set to %s", database.CORSOrigin)
+		}
+
 		dbs[database.Id] = database
 	}
 
@@ -276,8 +280,6 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 				AllowMethods: "POST,OPTIONS",
 				AllowOrigins: db.CORSOrigin,
 			}))
-
-			mllog.StdOutf("  + CORS Origin set to %s", db.CORSOrigin)
 		}
 
 		if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeHttp {
