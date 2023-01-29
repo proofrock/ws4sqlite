@@ -263,7 +263,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	mllog.WhenFatal = origWhenFatal
 
 	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
-	startMaint()
+	startMaint(dbs)
 
 	// Register the handler
 	for id, _ := range dbs {

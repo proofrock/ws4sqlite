@@ -136,7 +136,7 @@ func TestConfigs(t *testing.T) {
 	assert(t, cfg.Databases[0].ReadOnly, "the db has not the correct ReadOnly value")
 	assert(t, !cfg.Databases[0].UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
 	assert(t, cfg.Databases[0].CORSOrigin == "", "the db has not the correct CORSOrigin value")
-	assert(t, cfg.Databases[0].Maintenance.Schedule == "0 0 * * *", "the db has not the correct Maintenance.Schedule value")
+	assert(t, *cfg.Databases[0].Maintenance.Schedule == "0 0 * * *", "the db has not the correct Maintenance.Schedule value")
 	assert(t, cfg.Databases[0].Maintenance.DoVacuum, "the db has not the correct Maintenance.DoVacuum value")
 	assert(t, cfg.Databases[0].Maintenance.DoBackup, "the db has not the correct Maintenance.DoBackup value")
 	assert(t, cfg.Databases[0].Maintenance.BackupTemplate == "~/first_%s.db", "the db has not the correct Maintenance.BackupTemplate value")

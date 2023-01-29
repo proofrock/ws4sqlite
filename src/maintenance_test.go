@@ -47,11 +47,13 @@ func stopMaint() {
 	scheduler = cron.New()
 }
 
-// Takes one minutes
+// Takes one minute
 func TestMaintenance(t *testing.T) {
 	defer os.Remove("../test/test1.db")
 	defer os.Remove("../test/test2.db")
 	defer Shutdown()
+
+	sched := "* * * * *"
 
 	cfg := config{
 		Bindhost: "0.0.0.0",
@@ -62,7 +64,7 @@ func TestMaintenance(t *testing.T) {
 				Path:           "../test/test1.db",
 				DisableWALMode: true, // generate only ".db" files
 				Maintenance: &maintenance{
-					Schedule:       "* * * * *",
+					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
 					BackupTemplate: "../test/test1_%s.db",
@@ -73,7 +75,7 @@ func TestMaintenance(t *testing.T) {
 				Path:           "../test/test2.db",
 				DisableWALMode: true, // generate only ".db" files
 				Maintenance: &maintenance{
-					Schedule:       "* * * * *",
+					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
 					BackupTemplate: "../test/test2_%s.db",
@@ -149,6 +151,8 @@ func TestMaintWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 
+	sched := "* * * * *"
+
 	cfg := config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
@@ -159,7 +163,7 @@ func TestMaintWithReadOnly(t *testing.T) {
 				DisableWALMode: true, // generate only ".db" files
 				ReadOnly:       true,
 				Maintenance: &maintenance{
-					Schedule:       "* * * * *",
+					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
 					BackupTemplate: "../test/test1_%s.db",
@@ -177,6 +181,47 @@ func TestMaintWithReadOnly(t *testing.T) {
 	time.Sleep(time.Minute)
 
 	now := time.Now().Format(bkpTimeFormat)
+	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
+
+	if !fileExists(bk1) {
+		t.Error("backup file not created")
+		return
+	}
+}
+
+func TestAtStartup(t *testing.T) {
+	defer os.Remove("../test/test.db")
+	defer Shutdown()
+
+	t_r_u_e := true
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:             "test",
+				Path:           "../test/test.db",
+				DisableWALMode: true, // generate only ".db" files
+				Maintenance: &maintenance{
+					AtStartup:      &t_r_u_e,
+					DoVacuum:       false,
+					DoBackup:       true,
+					BackupTemplate: "../test/test1_%s.db",
+					NumFiles:       1,
+				},
+			},
+		},
+	}
+
+	cleanMaintFiles(cfg)
+	defer cleanMaintFiles(cfg)
+
+	go launch(cfg, true)
+	now := time.Now().Format(bkpTimeFormat)
+
+	time.Sleep(3 * time.Second)
+
 	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
 
 	if !fileExists(bk1) {

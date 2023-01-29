@@ -116,21 +116,38 @@ var exprDesc, _ = cronDesc.NewDescriptor()
 // Calls the parsing of the maintenance plan config, via doMaint(), and adds the
 // resulting maintenance func to be executed by cron
 func parseMaint(db *db) {
-	if _, err := scheduler.AddFunc(db.Maintenance.Schedule, doMaint(db.Id, *db.Maintenance, db.Db)); err != nil {
-		mllog.Fatal(err.Error())
+	isOk := false
+	if db.Maintenance.Schedule != nil {
+		if _, err := scheduler.AddFunc(*db.Maintenance.Schedule, doMaint(db.Id, *db.Maintenance, db.Db)); err != nil {
+			mllog.Fatal(err.Error())
+		}
+		schedulings++
+		// Also prints a log containing the human-readable translation of the cron schedule
+		if descr, err := exprDesc.ToDescription(*db.Maintenance.Schedule, cronDesc.Locale_en); err != nil {
+			mllog.Fatal("error in decoding schedule: ", err.Error())
+		} else {
+			mllog.StdOut("  + Maintenance scheduled ", strings.ToLower(descr))
+		}
+		isOk = true
 	}
-	schedulings++
-	// Also prints a log containing the human-readable translation of the cron schedule
-	if descr, err := exprDesc.ToDescription(db.Maintenance.Schedule, cronDesc.Locale_en); err != nil {
-		mllog.Fatal("error in decoding schedule: ", err.Error())
-	} else {
-		mllog.StdOut("  + Maintenance scheduled ", strings.ToLower(descr))
+	if db.Maintenance.AtStartup != nil && *db.Maintenance.AtStartup {
+		mllog.StdOut("  + Maintenance at startup")
+		isOk = true
+	}
+	if !isOk {
+		mllog.Fatal("error: maintenance must be scheduled or atStartup")
 	}
 }
 
 // Called by the launch function to actually start the cron engine.
 // Does it only if there's something to do.
-func startMaint() {
+func startMaint(map[string]db) {
+	for id, _ := range dbs {
+		db := dbs[id]
+		if db.Maintenance != nil && db.Maintenance.AtStartup != nil && *db.Maintenance.AtStartup {
+			doMaint(id, *db.Maintenance, db.Db)()
+		}
+	}
 	if schedulings > 0 {
 		scheduler.Start()
 	}
