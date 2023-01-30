@@ -183,6 +183,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			mllog.StdOut("  + Strictly using only stored statements")
 		}
 
+		// Creates the mutex to be used to serialize the waiting time after a failed auth
+		var mutex sync.Mutex
+		database.Mutex = &mutex
+
 		database.StoredStatsMap = make(map[string]string)
 
 		for j := range database.StoredStatement {
@@ -220,23 +224,8 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		if toCreate && len(database.InitStatements) > 0 {
-			for j := range database.InitStatements {
-				if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
-					if !isMemory {
-						// I fail and abort, so remove the leftover file
-						// TODO should I remove the wal files?
-						dbObj.Close()
-						os.Remove(database.Path)
-					}
-					mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
-				}
-			}
-			mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))
+			performInitStatements(database, dbObj, isMemory)
 		}
-
-		// Creates the mutex to be used to serialize the waiting time after a failed auth
-		var mutex sync.Mutex
-		database.Mutex = &mutex
 
 		database.Db = dbObj
 
@@ -319,4 +308,25 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	if err := app.Listen(conn); err != nil {
 		mllog.Fatal(err.Error())
 	}
+}
+
+func performInitStatements(database db, dbObj *sql.DB, isMemory bool) {
+	// This is implemented in its own method to allow the defer to run ASAP
+
+	// Execute non-concurrently
+	database.Mutex.Lock()
+	defer database.Mutex.Unlock()
+
+	for j := range database.InitStatements {
+		if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
+			if !isMemory {
+				// I fail and abort, so remove the leftover file
+				// TODO should I remove the wal files?
+				dbObj.Close()
+				os.Remove(database.Path)
+			}
+			mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
+		}
+	}
+	mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))
 }
