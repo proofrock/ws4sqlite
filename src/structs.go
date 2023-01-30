@@ -43,12 +43,13 @@ func newWSError(reqIdx int, code int, msg string, elements ...interface{}) wsErr
 // and storing additional context
 
 type maintenance struct {
-	Schedule       *string `yaml:"schedule"`
-	AtStartup      *bool   `yaml:"atStartup"`
-	DoVacuum       bool    `yaml:"doVacuum"`
-	DoBackup       bool    `yaml:"doBackup"`
-	BackupTemplate string  `yaml:"backupTemplate"`
-	NumFiles       int     `yaml:"numFiles"`
+	Schedule       *string  `yaml:"schedule"`
+	AtStartup      *bool    `yaml:"atStartup"`
+	DoVacuum       bool     `yaml:"doVacuum"`
+	DoBackup       bool     `yaml:"doBackup"`
+	BackupTemplate string   `yaml:"backupTemplate"`
+	NumFiles       int      `yaml:"numFiles"`
+	Statements     []string `yaml:"statements"`
 }
 
 type credentialsCfg struct {

@@ -106,6 +106,13 @@ func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 				os.Remove(list[i])
 			}
 		}
+		if len(mntCfg.Statements) > 0 {
+			for idx := range mntCfg.Statements {
+				if _, err := db.Exec(mntCfg.Statements[idx]); err != nil {
+					mllog.Errorf("maint (statement #%d): %s", idx, err.Error())
+				}
+			}
+		}
 	}
 }
 
@@ -116,6 +123,7 @@ var exprDesc, _ = cronDesc.NewDescriptor()
 // Calls the parsing of the maintenance plan config, via doMaint(), and adds the
 // resulting maintenance func to be executed by cron
 func parseMaint(db *db) {
+	// is there at least one btw schedule and atStartup?
 	isOk := false
 	if db.Maintenance.Schedule != nil {
 		if _, err := scheduler.AddFunc(*db.Maintenance.Schedule, doMaint(db.Id, *db.Maintenance, db.Db)); err != nil {

@@ -60,7 +60,7 @@ zbuild-all:
 	rm src/ws4sqlite
 
 test:
-	cd src; go test -v -timeout 5m
+	cd src; go test -v -timeout 6m
 
 docker:
 	sudo docker build --no-cache -t local_ws4sqlite:latest .

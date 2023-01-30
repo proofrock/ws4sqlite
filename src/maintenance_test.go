@@ -47,7 +47,7 @@ func stopMaint() {
 	scheduler = cron.New()
 }
 
-// Takes one minute
+// Takes two minutes
 func TestMaintenance(t *testing.T) {
 	defer os.Remove("../test/test1.db")
 	defer os.Remove("../test/test2.db")
@@ -147,6 +147,7 @@ func TestMaintenance(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
+// Takes one minute
 func TestMaintWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
@@ -186,6 +187,55 @@ func TestMaintWithReadOnly(t *testing.T) {
 	if !fileExists(bk1) {
 		t.Error("backup file not created")
 		return
+	}
+}
+
+// Takes one minute
+func TestMaintWithStatement(t *testing.T) {
+	defer os.Remove("../test/test.db")
+	defer Shutdown()
+
+	sched := "* * * * *"
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:             "test",
+				Path:           "../test/test.db",
+				DisableWALMode: true, // generate only ".db" files
+				Maintenance: &maintenance{
+					Schedule:   &sched,
+					DoVacuum:   false,
+					DoBackup:   false,
+					Statements: []string{"INSERT INTO tbl VALUES (17)"},
+				},
+				InitStatements: []string{"CREATE TABLE tbl (num INTEGER)"},
+			},
+		},
+	}
+
+	go launch(cfg, true)
+
+	time.Sleep(time.Minute)
+
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT num FROM tbl",
+			},
+		},
+	}
+
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed, but should have")
+	}
+
+	if fmt.Sprint(res.Results[0].ResultSet[0]["num"]) != "17" {
+		t.Error("scheduled statement probably didn't execute")
 	}
 }
 
