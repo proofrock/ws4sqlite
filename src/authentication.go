@@ -114,4 +114,8 @@ func parseAuth(db *db) {
 		}
 		mllog.StdOutf("  + Authentication enabled, with %d credentials", len((*db).Auth.HashedCreds))
 	}
+
+	if auth.CustomErrorCode != nil {
+		mllog.StdOutf("  + Custom code for Unauthorized: %d", *auth.CustomErrorCode)
+	}
 }

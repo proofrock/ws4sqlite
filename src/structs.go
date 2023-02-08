@@ -43,11 +43,13 @@ func newWSError(reqIdx int, code int, msg string, elements ...interface{}) wsErr
 // and storing additional context
 
 type maintenance struct {
-	Schedule       string `yaml:"schedule"`
-	DoVacuum       bool   `yaml:"doVacuum"`
-	DoBackup       bool   `yaml:"doBackup"`
-	BackupTemplate string `yaml:"backupTemplate"`
-	NumFiles       int    `yaml:"numFiles"`
+	Schedule       *string  `yaml:"schedule"`
+	AtStartup      *bool    `yaml:"atStartup"`
+	DoVacuum       bool     `yaml:"doVacuum"`
+	DoBackup       bool     `yaml:"doBackup"`
+	BackupTemplate string   `yaml:"backupTemplate"`
+	NumFiles       int      `yaml:"numFiles"`
+	Statements     []string `yaml:"statements"`
 }
 
 type credentialsCfg struct {
@@ -57,10 +59,11 @@ type credentialsCfg struct {
 }
 
 type authr struct {
-	Mode          string           `yaml:"mode"` // 'INLINE' or 'HTTP'
-	ByQuery       string           `yaml:"byQuery"`
-	ByCredentials []credentialsCfg `yaml:"byCredentials"`
-	HashedCreds   map[string][]byte
+	Mode            string           `yaml:"mode"` // 'INLINE' or 'HTTP'
+	CustomErrorCode *int             `yaml:"customErrorCode"`
+	ByQuery         string           `yaml:"byQuery"`
+	ByCredentials   []credentialsCfg `yaml:"byCredentials"`
+	HashedCreds     map[string][]byte
 }
 
 type storedStatement struct {

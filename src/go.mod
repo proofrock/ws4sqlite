@@ -1,12 +1,12 @@
 module github.com/proofrock/ws4sqlite
 
-go 1.19
+go 1.20
 
 require (
-	github.com/gofiber/fiber/v2 v2.41.0
+	github.com/gofiber/fiber/v2 v2.42.0
 	github.com/lnquy/cron v1.1.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/proofrock/crypgo v1.2.0
+	github.com/proofrock/crypgo v1.2.1
 	github.com/proofrock/go-mylittlelogger v0.4.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wI2L/jettison v0.7.4
@@ -23,8 +23,12 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/remyoudompheng/bigfft v0.0.0-20230126093431-47fa9a501578 // indirect
+	github.com/philhofer/fwd v1.1.2 // indirect
+	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
+	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
+	github.com/savsgio/gotils v0.0.0-20230203094617-bcbc01813b4f // indirect
+	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.44.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect

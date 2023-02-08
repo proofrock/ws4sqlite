@@ -63,7 +63,8 @@ Obtaining an answer of
 - For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sqlite/documentation/errors#managed-errors) to that query;
 - "[**Stored Statements**](https://germ.gitbook.io/ws4sqlite/documentation/stored-statements)": define SQL in the server, and call it from the client;
 - [**CORS**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#corsorigin) mode, configurable per-db;
-- [**Maintenance**](https://germ.gitbook.io/ws4sqlite/documentation/maintenance) scheduling (VACUUM and backups), also configurable per-db;
+- [**Maintenance**](https://germ.gitbook.io/ws4sqlite/documentation/maintenance) tasks, either scheduled and/or at startup, also configurable per-db;
+- Maintenance tasks can be: backup (with rotation), vacuum and/or a set of SQL statements;
 - Builtin [**encryption**](https://germ.gitbook.io/ws4sqlite/documentation/encryption) of fields, given a symmetric key;
 - Provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
 - [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
@@ -71,7 +72,7 @@ Obtaining an answer of
 - [**Embedded web server**](https://germ.gitbook.io/ws4sqlite/documentation/web-server) to directly serve web pages that can access ws4sqlite without CORS;
 - Compact codebase;
 - Comprehensive test suite (`make test`);
-- 9 os's/arch's directly supported;
+- 10 os's/arch's directly supported;
 - [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), for amd64, arm and arm64.
 
 # Security Features
@@ -79,6 +80,7 @@ Obtaining an answer of
 * [**Authentication**](documentation/security.md#authentication) can be configured
   * on the client, either using HTTP Basic Authentication or specifying the credentials in the request;
   * on the server, either by specifying credentials (also with hashed passwords) or providing a query to look them up in the db itself;
+  * customizable `Not Authorized` error code (if 401 is not optimal)
 * A database can be opened in [**read-only mode**](documentation/security.md#read-only-databases) (only queries will be allowed);
 * It's possible to enforce using [**only stored statements**](documentation/security.md#stored-statements-to-prevent-sql-injection), to avoid some forms of SQL injection and receiving SQL from the client altogether;
 * [**CORS Allowed Origin**](documentation/security.md#cors-allowed-origin) can be configured and enforced;

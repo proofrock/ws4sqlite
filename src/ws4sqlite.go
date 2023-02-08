@@ -19,8 +19,10 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/wI2L/jettison"
 	"os"
@@ -28,14 +30,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/mitchellh/go-homedir"
-
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.12.7"
+const version = "0.13.0"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -184,6 +183,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			mllog.StdOut("  + Strictly using only stored statements")
 		}
 
+		// Creates the mutex to be used to serialize the waiting time after a failed auth
+		var mutex sync.Mutex
+		database.Mutex = &mutex
+
 		database.StoredStatsMap = make(map[string]string)
 
 		for j := range database.StoredStatement {
@@ -221,23 +224,8 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		if toCreate && len(database.InitStatements) > 0 {
-			for j := range database.InitStatements {
-				if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
-					if !isMemory {
-						// I fail and abort, so remove the leftover file
-						// TODO should I remove the wal files?
-						dbObj.Close()
-						os.Remove(database.Path)
-					}
-					mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
-				}
-			}
-			mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))
+			performInitStatements(database, dbObj, isMemory)
 		}
-
-		// Creates the mutex to be used to serialize the waiting time after a failed auth
-		var mutex sync.Mutex
-		database.Mutex = &mutex
 
 		database.Db = dbObj
 
@@ -249,6 +237,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		// Parsing of the maintenance plan
 		if database.Maintenance != nil {
 			parseMaint(&database)
+		}
+
+		if database.CORSOrigin != "" {
+			mllog.StdOutf("  + CORS Origin set to %s", database.CORSOrigin)
 		}
 
 		dbs[database.Id] = database
@@ -264,7 +256,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	mllog.WhenFatal = origWhenFatal
 
 	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
-	startMaint()
+	startMaint(dbs)
 
 	// Register the handler
 	for id, _ := range dbs {
@@ -277,8 +269,6 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 				AllowMethods: "POST,OPTIONS",
 				AllowOrigins: db.CORSOrigin,
 			}))
-
-			mllog.StdOutf("  + CORS Origin set to %s", db.CORSOrigin)
 		}
 
 		if db.Auth != nil && strings.ToUpper(db.Auth.Mode) == authModeHttp {
@@ -293,6 +283,12 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 						return false
 					}
 					return true
+				},
+				Unauthorized: func(c *fiber.Ctx) error {
+					if db.Auth.CustomErrorCode != nil {
+						return c.Status(*db.Auth.CustomErrorCode).SendString("Unauthorized")
+					}
+					return c.SendStatus(fiber.StatusUnauthorized)
 				},
 			}))
 		}
@@ -312,4 +308,25 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	if err := app.Listen(conn); err != nil {
 		mllog.Fatal(err.Error())
 	}
+}
+
+func performInitStatements(database db, dbObj *sql.DB, isMemory bool) {
+	// This is implemented in its own method to allow the defer to run ASAP
+
+	// Execute non-concurrently
+	database.Mutex.Lock()
+	defer database.Mutex.Unlock()
+
+	for j := range database.InitStatements {
+		if _, err := dbObj.Exec(database.InitStatements[j]); err != nil {
+			if !isMemory {
+				// I fail and abort, so remove the leftover file
+				// TODO should I remove the wal files?
+				dbObj.Close()
+				os.Remove(database.Path)
+			}
+			mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
+		}
+	}
+	mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))
 }

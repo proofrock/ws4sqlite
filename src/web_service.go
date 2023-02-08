@@ -223,6 +223,9 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 			if err := applyAuth(&db, &body); err != nil {
 				// When unauthenticated waits for 1s to hinder brute force attacks
 				time.Sleep(time.Second)
+				if db.Auth.CustomErrorCode != nil {
+					return newWSError(-1, *db.Auth.CustomErrorCode, err.Error())
+				}
 				return newWSError(-1, fiber.StatusUnauthorized, err.Error())
 			}
 		}

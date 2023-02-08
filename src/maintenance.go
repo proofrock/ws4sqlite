@@ -17,7 +17,6 @@
 package main
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -40,20 +39,20 @@ var bkpTimeGlob = strings.Repeat("?", len(bkpTimeFormat))
 
 // Parses a backup plan, checks that it is well-formed and returns a function that
 // will be called by cron and executes the plan.
-func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
+func doMaint(db db) func() {
 	var bkpDir, bkpFile string
-	if mntCfg.DoBackup {
+	if db.Maintenance.DoBackup {
 		var err error
-		if mntCfg.BackupTemplate == "" {
+		if db.Maintenance.BackupTemplate == "" {
 			mllog.Fatal("the backup template must have a value")
 		}
 
-		mntCfg.BackupTemplate, err = homedir.Expand(mntCfg.BackupTemplate)
+		db.Maintenance.BackupTemplate, err = homedir.Expand(db.Maintenance.BackupTemplate)
 		if err != nil {
 			mllog.Fatal("in expanding bkp template path: ", err.Error())
 		}
 
-		bkpDir, bkpFile = filepath.Dir(mntCfg.BackupTemplate), filepath.Base(mntCfg.BackupTemplate)
+		bkpDir, bkpFile = filepath.Dir(db.Maintenance.BackupTemplate), filepath.Base(db.Maintenance.BackupTemplate)
 
 		if !strings.Contains(bkpFile, "%s") || strings.Count(bkpFile, "%") != 1 {
 			mllog.Fatalf("the backup file name must contain a single '%%s' and no other '%%'")
@@ -65,7 +64,7 @@ func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 			mllog.Fatal("the backup directory must exist")
 		}
 
-		if mntCfg.NumFiles < 1 {
+		if db.Maintenance.NumFiles < 1 {
 			mllog.Fatal("the number of backup files to keep must be at least 1")
 		}
 	}
@@ -76,16 +75,21 @@ func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 	//
 	// Just log Errors when it fails. Doesn't of course block/abort anything.
 	return func() {
-		if mntCfg.DoVacuum {
-			if _, err := db.Exec("VACUUM"); err != nil {
+		// Execute non-concurrently
+		db.Mutex.Lock()
+		defer db.Mutex.Unlock()
+
+		if db.Maintenance.DoVacuum {
+			if _, err := db.Db.Exec("VACUUM"); err != nil {
 				mllog.Error("maint (vacuum): ", err.Error())
 				return
 			}
 		}
-		if mntCfg.DoBackup {
+
+		if db.Maintenance.DoBackup {
 			now := time.Now().Format(bkpTimeFormat)
 			fname := fmt.Sprintf(filepath.Join(bkpDir, bkpFile), now)
-			stat, err := db.Prepare("VACUUM INTO ?")
+			stat, err := db.Db.Prepare("VACUUM INTO ?")
 			if err != nil {
 				mllog.Error("maint (backup prep): ", err.Error())
 				return
@@ -102,8 +106,16 @@ func doMaint(id string, mntCfg maintenance, db *sql.DB) func() {
 				return
 			}
 			sort.Strings(list)
-			for i := 0; i < len(list)-mntCfg.NumFiles; i++ {
+			for i := 0; i < len(list)-db.Maintenance.NumFiles; i++ {
 				os.Remove(list[i])
+			}
+		}
+
+		if len(db.Maintenance.Statements) > 0 {
+			for idx := range db.Maintenance.Statements {
+				if _, err := db.Db.Exec(db.Maintenance.Statements[idx]); err != nil {
+					mllog.Errorf("maint (statement #%d): %s", idx, err.Error())
+				}
 			}
 		}
 	}
@@ -116,21 +128,39 @@ var exprDesc, _ = cronDesc.NewDescriptor()
 // Calls the parsing of the maintenance plan config, via doMaint(), and adds the
 // resulting maintenance func to be executed by cron
 func parseMaint(db *db) {
-	if _, err := scheduler.AddFunc(db.Maintenance.Schedule, doMaint(db.Id, *db.Maintenance, db.Db)); err != nil {
-		mllog.Fatal(err.Error())
+	// is there at least one btw schedule and atStartup?
+	isOk := false
+	if db.Maintenance.Schedule != nil {
+		if _, err := scheduler.AddFunc(*db.Maintenance.Schedule, doMaint(*db)); err != nil {
+			mllog.Fatal(err.Error())
+		}
+		schedulings++
+		// Also prints a log containing the human-readable translation of the cron schedule
+		if descr, err := exprDesc.ToDescription(*db.Maintenance.Schedule, cronDesc.Locale_en); err != nil {
+			mllog.Fatal("error in decoding schedule: ", err.Error())
+		} else {
+			mllog.StdOut("  + Maintenance scheduled ", strings.ToLower(descr))
+		}
+		isOk = true
 	}
-	schedulings++
-	// Also prints a log containing the human-readable translation of the cron schedule
-	if descr, err := exprDesc.ToDescription(db.Maintenance.Schedule, cronDesc.Locale_en); err != nil {
-		mllog.Fatal("error in decoding schedule: ", err.Error())
-	} else {
-		mllog.StdOut("  + Maintenance scheduled ", strings.ToLower(descr))
+	if db.Maintenance.AtStartup != nil && *db.Maintenance.AtStartup {
+		mllog.StdOut("  + Maintenance at startup")
+		isOk = true
+	}
+	if !isOk {
+		mllog.Fatal("error: maintenance must be scheduled or atStartup")
 	}
 }
 
 // Called by the launch function to actually start the cron engine.
 // Does it only if there's something to do.
-func startMaint() {
+func startMaint(map[string]db) {
+	for id, _ := range dbs {
+		db := dbs[id]
+		if db.Maintenance != nil && db.Maintenance.AtStartup != nil && *db.Maintenance.AtStartup {
+			doMaint(db)()
+		}
+	}
 	if schedulings > 0 {
 		scheduler.Start()
 	}

@@ -535,3 +535,96 @@ func TestBATeardownAuth(t *testing.T) {
 	os.Remove("../test/test1.db")
 	os.Remove("../test/test2.db")
 }
+
+func TestCustomCodeSetup(t *testing.T) {
+	os.Remove("../test/test1.db")
+	os.Remove("../test/test2.db")
+
+	errCode := 444
+
+	// test1 has credentials, test2 uses an auth query
+	// init statements are also tested here
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:             "test1",
+				Path:           "../test/test1.db",
+				DisableWALMode: true,
+				Auth: &authr{
+					Mode:            "HTTP",
+					CustomErrorCode: &errCode,
+					ByCredentials: []credentialsCfg{
+						{
+							User:     "pietro",
+							Password: "hey",
+						},
+						{
+							User:           "paolo",
+							HashedPassword: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
+						},
+					},
+				},
+			},
+			{
+				Id:             "test2",
+				Path:           "../test/test2.db",
+				DisableWALMode: true,
+				InitStatements: []string{
+					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
+					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
+				},
+				Auth: &authr{
+					Mode:            "inline", // check if case insensitive
+					CustomErrorCode: &errCode,
+					ByQuery:         "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
+				},
+			},
+		},
+	}
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+}
+
+func TestCustomCodeNoAuth1(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT 1",
+			},
+		},
+	}
+
+	code, body, _ := call("test1", req, t)
+
+	if code != 444 {
+		t.Errorf("did not fail with 444: %s", body)
+		return
+	}
+}
+
+func TestCustomCodeNoAuth2(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT 1",
+			},
+		},
+	}
+
+	code, body, _ := call("test2", req, t)
+
+	if code != 444 {
+		t.Errorf("did not fail with 444: %s", body)
+		return
+	}
+}
+
+func TestCustomCodeTeardown(t *testing.T) {
+	time.Sleep(time.Second)
+	Shutdown()
+	os.Remove("../test/test1.db")
+	os.Remove("../test/test2.db")
+}
