@@ -1,3 +1,13 @@
+## v0.13.0
+*2023-2-8, Venice*
+
+- Issue #16: Feature: specify a custom error code for Not Authorized
+- Issue #19: Feature: backup at each startup
+- Issue #20: Feature: ability to perform statements during maintenance
+- Issue #15: Out-of-order startup reporting of server configs
+- Library updates
+- Go 1.20
+
 ## v0.12.7
 *2023-1-26, Venice*
 
