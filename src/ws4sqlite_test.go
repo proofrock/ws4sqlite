@@ -44,6 +44,9 @@ func Shutdown() {
 	if len(dbs) > 0 {
 		mllog.StdOut("Closing databases...")
 		for i := range dbs {
+			if dbs[i].DbConn != nil {
+				dbs[i].DbConn.Close()
+			}
 			dbs[i].Db.Close()
 			delete(dbs, i)
 		}

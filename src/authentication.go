@@ -18,6 +18,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -42,7 +43,7 @@ func applyAuthCreds(db *db, user, password string) error {
 		// Auth via query. Looks into the database for the credentials;
 		// needs a query that is correctly parametrized.
 		nameds := vals2nameds(map[string]interface{}{"user": user, "password": password})
-		row := db.Db.QueryRow(db.Auth.ByQuery, nameds...)
+		row := db.DbConn.QueryRowContext(context.Background(), db.Auth.ByQuery, nameds...)
 		var foo interface{}
 		if err := row.Scan(&foo); err == sql.ErrNoRows {
 			return errors.New("wrong credentials")
@@ -94,7 +95,7 @@ func parseAuth(db *db) {
 			if auth.ByCredentials[i].User == "" {
 				mllog.Fatal("no user for credential")
 			}
-			var bytes []byte
+			var b []byte
 			if (auth.ByCredentials[i].HashedPassword == "") == (auth.ByCredentials[i].Password == "") {
 				mllog.Fatal("one and only one of 'password' and 'hashedPassword' must be specified")
 			}
@@ -102,15 +103,15 @@ func parseAuth(db *db) {
 			// first place. For uniformity and (vaguely) security.
 			if auth.ByCredentials[i].HashedPassword != "" {
 				var err error
-				bytes, err = hex.DecodeString(auth.ByCredentials[i].HashedPassword)
-				if err != nil || len(bytes) != 32 {
+				b, err = hex.DecodeString(auth.ByCredentials[i].HashedPassword)
+				if err != nil || len(b) != 32 {
 					mllog.Fatalf("for db '%s', hashedPassword doesn't seem to be SHA256/hex.", db.Id)
 				}
 			} else {
 				bytes32 := sha256.Sum256([]byte(auth.ByCredentials[i].Password))
-				bytes = bytes32[:]
+				b = bytes32[:]
 			}
-			(*db).Auth.HashedCreds[auth.ByCredentials[i].User] = bytes
+			(*db).Auth.HashedCreds[auth.ByCredentials[i].User] = b
 		}
 		mllog.StdOutf("  + Authentication enabled, with %d credentials", len((*db).Auth.HashedCreds))
 	}

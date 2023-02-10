@@ -84,6 +84,7 @@ type db struct {
 	StoredStatement         []storedStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`
 	Db                      *sql.DB
+	DbConn                  *sql.Conn
 	StoredStatsMap          map[string]string
 	Mutex                   *sync.Mutex
 }

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -80,7 +81,7 @@ func doMaint(db db) func() {
 		defer db.Mutex.Unlock()
 
 		if db.Maintenance.DoVacuum {
-			if _, err := db.Db.Exec("VACUUM"); err != nil {
+			if _, err := db.DbConn.ExecContext(context.Background(), "VACUUM"); err != nil {
 				mllog.Error("maint (vacuum): ", err.Error())
 				return
 			}
@@ -89,7 +90,7 @@ func doMaint(db db) func() {
 		if db.Maintenance.DoBackup {
 			now := time.Now().Format(bkpTimeFormat)
 			fname := fmt.Sprintf(filepath.Join(bkpDir, bkpFile), now)
-			stat, err := db.Db.Prepare("VACUUM INTO ?")
+			stat, err := db.DbConn.PrepareContext(context.Background(), "VACUUM INTO ?")
 			if err != nil {
 				mllog.Error("maint (backup prep): ", err.Error())
 				return
@@ -113,7 +114,7 @@ func doMaint(db db) func() {
 
 		if len(db.Maintenance.Statements) > 0 {
 			for idx := range db.Maintenance.Statements {
-				if _, err := db.Db.Exec(db.Maintenance.Statements[idx]); err != nil {
+				if _, err := db.DbConn.ExecContext(context.Background(), db.Maintenance.Statements[idx]); err != nil {
 					mllog.Errorf("maint (statement #%d): %s", idx, err.Error())
 				}
 			}
