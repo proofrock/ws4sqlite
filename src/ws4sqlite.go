@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
@@ -34,7 +35,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.13.0"
+const version = "0.14.0_branch22_1"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -230,6 +231,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		database.Db = dbObj
+		database.DbConn, err = dbObj.Conn(context.Background())
+		if err != nil {
+			mllog.Fatalf("in opening connection to %s: %s", database.Id, err.Error())
+		}
 
 		// Parsing of the authentication
 		if database.Auth != nil {
@@ -261,7 +266,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	startMaint(dbs)
 
 	// Register the handler
-	for id, _ := range dbs {
+	for id := range dbs {
 		db := dbs[id]
 
 		var handlers []fiber.Handler

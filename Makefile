@@ -82,5 +82,5 @@ docker-publish:
 	sudo docker manifest push germanorizzo/ws4sqlite:latest
 
 docker-devel:
-	sudo docker build --no-cache -t germanorizzo/ws4sqlite:v0.13.0 .
-	sudo docker push germanorizzo/ws4sqlite:v0.13.0
+	sudo docker build --no-cache -t germanorizzo/ws4sqlite:edge .
+	sudo docker push germanorizzo/ws4sqlite:edge

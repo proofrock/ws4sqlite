@@ -234,14 +234,8 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 			return newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)")
 		}
 
-		dbConn, err := db.Db.Conn(context.Background())
-		if err != nil {
-			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
-		}
-		defer dbConn.Close()
-
 		// Opens a transaction. One more occasion to specify: read only ;-)
-		tx, err := dbConn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
+		tx, err := db.DbConn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
 		if err != nil {
 			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
 		}
