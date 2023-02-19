@@ -50,19 +50,21 @@ func parseCLI() config {
 
 	// cli parameters
 	var dbFiles arrayFlags
-	fs.Var(&dbFiles, "db", "Repeatable; paths of file-based databases.")
+	fs.Var(&dbFiles, "db", "Repeatable; paths of file-based databases")
 	var memDb arrayFlags
-	fs.Var(&memDb, "mem-db", "Repeatable; config for memory-based databases (ID[:configFilePath]).")
+	fs.Var(&memDb, "mem-db", "Repeatable; config for memory-based databases (format: ID[:configFilePath])")
 
 	serveDir := fs.String("serve-dir", "", "A directory to serve with builtin HTTP server")
 
-	bindHost := fs.String("bind-host", "0.0.0.0", "The host to bind (default: 0.0.0.0).")
-	port := fs.Int("port", 12321, "Port for the web service (default: 12321).")
+	bindHost := fs.String("bind-host", "0.0.0.0", "The host to bind")
+	port := fs.Int("port", 12321, "Port for the web service")
 	version := fs.Bool("version", false, "Display the version number")
 
-	fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		mllog.Fatalf("parsing commandline arguments: %s", err.Error())
+	}
 
-	// version is always printed, before calling this method, so nothing left to do but exit
+	// version is printed before calling this method, so nothing left to do but exit
 	if *version {
 		os.Exit(0)
 	}

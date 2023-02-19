@@ -55,12 +55,14 @@ func getSQLiteVersion() (string, error) {
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
-	mllog.StdOut("ws4sqlite ", version)
+	header := fmt.Sprintf("ws4sqlite v%s", version)
 	sqliteVersion, err := getSQLiteVersion()
 	if err != nil {
+		mllog.StdOut(header)
 		mllog.Fatalf("getting SQLite version: %s", err.Error())
 	}
-	mllog.StdOut("- Based on SQLite v" + sqliteVersion)
+	header = fmt.Sprintf("%s, based on sqlite v%s", header, sqliteVersion)
+	mllog.StdOut(header)
 
 	cfg := parseCLI()
 
