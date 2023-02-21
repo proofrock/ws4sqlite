@@ -35,7 +35,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.14.0_branch22_1"
+const version = "0.14.0_develop"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -241,9 +241,15 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			parseAuth(&database)
 		}
 
-		// Parsing of the maintenance plan
-		if database.Maintenance != nil {
-			parseMaint(&database)
+		// Parsing of the scheduled tasks
+		if database.Maintenance != nil && len(database.ScheduledTasks) > 0 {
+			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", database.Id)
+		} else if database.Maintenance != nil {
+			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", database.Id)
+			database.ScheduledTasks = []scheduledTask{*database.Maintenance}
+		}
+		if len(database.ScheduledTasks) > 0 {
+			parseTasks(&database)
 		}
 
 		if database.CORSOrigin != "" {
@@ -263,7 +269,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	mllog.WhenFatal = origWhenFatal
 
 	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
-	startMaint(dbs)
+	startTasks()
 
 	// Register the handler
 	for id := range dbs {

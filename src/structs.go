@@ -42,7 +42,7 @@ func newWSError(reqIdx int, code int, msg string, elements ...interface{}) wsErr
 // These are for parsing the config file (from YAML)
 // and storing additional context
 
-type maintenance struct {
+type scheduledTask struct {
 	Schedule       *string  `yaml:"schedule"`
 	AtStartup      *bool    `yaml:"atStartup"`
 	DoVacuum       bool     `yaml:"doVacuum"`
@@ -50,6 +50,7 @@ type maintenance struct {
 	BackupTemplate string   `yaml:"backupTemplate"`
 	NumFiles       int      `yaml:"numFiles"`
 	Statements     []string `yaml:"statements"`
+	Db             *db
 }
 
 type credentialsCfg struct {
@@ -80,7 +81,8 @@ type db struct {
 	CORSOrigin              string            `yaml:"corsOrigin"`
 	UseOnlyStoredStatements bool              `yaml:"useOnlyStoredStatements"`
 	DisableWALMode          bool              `yaml:"disableWALMode"`
-	Maintenance             *maintenance      `yaml:"maintenance"`
+	Maintenance             *scheduledTask    `yaml:"maintenance"`
+	ScheduledTasks          []scheduledTask   `yaml:"scheduledTasks"`
 	StoredStatement         []storedStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`
 	Db                      *sql.DB
