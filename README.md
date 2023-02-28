@@ -52,7 +52,7 @@ Obtaining an answer of
 
 [Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
-- Aligned to [**SQLite 3.40.1**](https://sqlite.org/releaselog/3_40_1.html);
+- Aligned to [**SQLite 3.41.0**](https://sqlite.org/releaselog/3_41_0.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
@@ -63,8 +63,8 @@ Obtaining an answer of
 - For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sqlite/documentation/errors#managed-errors) to that query;
 - "[**Stored Statements**](https://germ.gitbook.io/ws4sqlite/documentation/stored-statements)": define SQL in the server, and call it from the client;
 - [**CORS**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#corsorigin) mode, configurable per-db;
-- [**Maintenance**](https://germ.gitbook.io/ws4sqlite/documentation/maintenance) tasks, either scheduled and/or at startup, also configurable per-db;
-- Maintenance tasks can be: backup (with rotation), vacuum and/or a set of SQL statements;
+- [**Scheduled tasks**](https://germ.gitbook.io/ws4sqlite/documentation/sched_tasks), cron-like and/or at startup, also configurable per-db;
+- Scheduled tasks can be: backup (with rotation), vacuum and/or a set of SQL statements;
 - Builtin [**encryption**](https://germ.gitbook.io/ws4sqlite/documentation/encryption) of fields, given a symmetric key;
 - Provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
 - [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);

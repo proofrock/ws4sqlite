@@ -18,15 +18,17 @@ package main
 
 import (
 	"fmt"
+	"github.com/robfig/cron/v3"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"github.com/robfig/cron/v3"
 )
 
-func cleanMaintFiles(cfg config) {
+// The post-0.14 "scheduledTasks" structure is only actually tested in TestAtStartupMultiple, but the contents of the
+// "maintenance" structure are copied to it anyway so the old tests for "maintenance" should suffice for the new one too
+
+func cleanSchedTasksFiles(cfg config) {
 	for i := range cfg.Databases {
 		os.Remove(cfg.Databases[i].Path)
 		bkpDir, bkpFile := filepath.Dir(cfg.Databases[i].Maintenance.BackupTemplate),
@@ -39,16 +41,16 @@ func cleanMaintFiles(cfg config) {
 }
 
 // called only by tests, so it fits better here
-func stopMaint() {
-	if schedulings > 0 {
+func stopScheduler() {
+	if haySchedules {
 		scheduler.Stop()
-		schedulings = 0
+		haySchedules = false
 	}
 	scheduler = cron.New()
 }
 
 // Takes two minutes
-func TestMaintenance(t *testing.T) {
+func TestSchedTasks(t *testing.T) {
 	defer os.Remove("../test/test1.db")
 	defer os.Remove("../test/test2.db")
 	defer Shutdown()
@@ -63,7 +65,7 @@ func TestMaintenance(t *testing.T) {
 				Id:             "test1",
 				Path:           "../test/test1.db",
 				DisableWALMode: true, // generate only ".db" files
-				Maintenance: &maintenance{
+				Maintenance: &scheduledTask{
 					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
@@ -74,7 +76,7 @@ func TestMaintenance(t *testing.T) {
 				Id:             "test2",
 				Path:           "../test/test2.db",
 				DisableWALMode: true, // generate only ".db" files
-				Maintenance: &maintenance{
+				Maintenance: &scheduledTask{
 					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
@@ -85,8 +87,8 @@ func TestMaintenance(t *testing.T) {
 		},
 	}
 
-	cleanMaintFiles(cfg)
-	defer cleanMaintFiles(cfg)
+	cleanSchedTasksFiles(cfg)
+	defer cleanSchedTasksFiles(cfg)
 
 	go launch(cfg, true)
 
@@ -148,7 +150,7 @@ func TestMaintenance(t *testing.T) {
 }
 
 // Takes one minute
-func TestMaintWithReadOnly(t *testing.T) {
+func TestSchedTasksWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 
@@ -163,7 +165,7 @@ func TestMaintWithReadOnly(t *testing.T) {
 				Path:           "../test/test.db",
 				DisableWALMode: true, // generate only ".db" files
 				ReadOnly:       true,
-				Maintenance: &maintenance{
+				Maintenance: &scheduledTask{
 					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
@@ -174,8 +176,8 @@ func TestMaintWithReadOnly(t *testing.T) {
 		},
 	}
 
-	cleanMaintFiles(cfg)
-	defer cleanMaintFiles(cfg)
+	cleanSchedTasksFiles(cfg)
+	defer cleanSchedTasksFiles(cfg)
 
 	go launch(cfg, true)
 
@@ -191,7 +193,7 @@ func TestMaintWithReadOnly(t *testing.T) {
 }
 
 // Takes one minute
-func TestMaintWithStatement(t *testing.T) {
+func TestSchedTasksWithStatement(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 
@@ -205,7 +207,7 @@ func TestMaintWithStatement(t *testing.T) {
 				Id:             "test",
 				Path:           "../test/test.db",
 				DisableWALMode: true, // generate only ".db" files
-				Maintenance: &maintenance{
+				Maintenance: &scheduledTask{
 					Schedule:   &sched,
 					DoVacuum:   false,
 					DoBackup:   false,
@@ -253,7 +255,7 @@ func TestAtStartup(t *testing.T) {
 				Id:             "test",
 				Path:           "../test/test.db",
 				DisableWALMode: true, // generate only ".db" files
-				Maintenance: &maintenance{
+				Maintenance: &scheduledTask{
 					AtStartup:      &t_r_u_e,
 					DoVacuum:       false,
 					DoBackup:       true,
@@ -264,8 +266,8 @@ func TestAtStartup(t *testing.T) {
 		},
 	}
 
-	cleanMaintFiles(cfg)
-	defer cleanMaintFiles(cfg)
+	cleanSchedTasksFiles(cfg)
+	defer cleanSchedTasksFiles(cfg)
 
 	go launch(cfg, true)
 	now := time.Now().Format(bkpTimeFormat)
@@ -277,5 +279,61 @@ func TestAtStartup(t *testing.T) {
 	if !fileExists(bk1) {
 		t.Error("backup file not created")
 		return
+	}
+}
+
+func TestAtStartupMultiple(t *testing.T) {
+	defer os.Remove("../test/test.db")
+	defer Shutdown()
+
+	t_r_u_e := true
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:             "test",
+				Path:           "../test/test.db",
+				DisableWALMode: true, // generate only ".db" files
+				InitStatements: []string{
+					"CREATE TABLE TMP (ID INTEGER)",
+				},
+				ScheduledTasks: []scheduledTask{
+					{
+						AtStartup:  &t_r_u_e,
+						DoVacuum:   false,
+						DoBackup:   false,
+						Statements: []string{"INSERT INTO TMP VALUES (1)"},
+					}, {
+						AtStartup:  &t_r_u_e,
+						DoVacuum:   false,
+						DoBackup:   false,
+						Statements: []string{"INSERT INTO TMP VALUES (2)"},
+					},
+				},
+			},
+		},
+	}
+
+	go launch(cfg, true)
+
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT ID AS CNT FROM TMP",
+			},
+		},
+	}
+
+	code, body, res := call("test", req, t)
+
+	if code != 200 {
+		t.Errorf("did not succeed (%d): %s", code, body)
+		return
+	}
+
+	if len(res.Results[0].ResultSet) != 2 {
+		t.Errorf("did not succeed -> %v", res.Results[0].ResultSet)
 	}
 }

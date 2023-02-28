@@ -17,6 +17,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
@@ -34,7 +35,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.13.0"
+const version = "0.14.0"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -55,12 +56,14 @@ func getSQLiteVersion() (string, error) {
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
-	mllog.StdOut("ws4sqlite ", version)
+	header := fmt.Sprintf("ws4sqlite v%s", version)
 	sqliteVersion, err := getSQLiteVersion()
 	if err != nil {
+		mllog.StdOut(header)
 		mllog.Fatalf("getting SQLite version: %s", err.Error())
 	}
-	mllog.StdOut("- Based on SQLite v" + sqliteVersion)
+	header = fmt.Sprintf("%s, based on sqlite v%s", header, sqliteVersion)
+	mllog.StdOut(header)
 
 	cfg := parseCLI()
 
@@ -228,15 +231,25 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		database.Db = dbObj
+		database.DbConn, err = dbObj.Conn(context.Background())
+		if err != nil {
+			mllog.Fatalf("in opening connection to %s: %s", database.Id, err.Error())
+		}
 
 		// Parsing of the authentication
 		if database.Auth != nil {
 			parseAuth(&database)
 		}
 
-		// Parsing of the maintenance plan
-		if database.Maintenance != nil {
-			parseMaint(&database)
+		// Parsing of the scheduled tasks
+		if database.Maintenance != nil && len(database.ScheduledTasks) > 0 {
+			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", database.Id)
+		} else if database.Maintenance != nil {
+			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", database.Id)
+			database.ScheduledTasks = []scheduledTask{*database.Maintenance}
+		}
+		if len(database.ScheduledTasks) > 0 {
+			parseTasks(&database)
 		}
 
 		if database.CORSOrigin != "" {
@@ -256,10 +269,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	mllog.WhenFatal = origWhenFatal
 
 	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
-	startMaint(dbs)
+	startTasks()
 
 	// Register the handler
-	for id, _ := range dbs {
+	for id := range dbs {
 		db := dbs[id]
 
 		var handlers []fiber.Handler
