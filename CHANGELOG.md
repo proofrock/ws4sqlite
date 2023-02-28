@@ -1,3 +1,12 @@
+## v0.14.0
+*2023-2-28, Fes*
+
+- SQLite 3.40.1
+- Issue #21: Feature: multiple maintenance tasks
+- Issue #22: Enhancement: keep the db connection open
+- Issue #24: Small fixes to commandline args parsing
+- Library updates
+
 ## v0.13.0
 *2023-2-8, Venice*
 
