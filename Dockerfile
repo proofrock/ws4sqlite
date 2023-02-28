@@ -7,7 +7,7 @@ RUN apk upgrade
 RUN apk add --update go git make
 WORKDIR /app
 ENV GOPATH /app
-RUN git clone -b feature/#22_long_lived_connections https://github.com/proofrock/ws4sqlite
+RUN git clone https://github.com/proofrock/ws4sqlite
 WORKDIR /app/ws4sqlite
 RUN make build-nostatic
 
