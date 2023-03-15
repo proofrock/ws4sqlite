@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 }
 
 func Shutdown() {
-	// stopMaint()
+	stopScheduler()
 	if len(dbs) > 0 {
 		mllog.StdOut("Closing databases...")
 		for i := range dbs {
