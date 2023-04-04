@@ -318,6 +318,8 @@ func TestAtStartupMultiple(t *testing.T) {
 
 	go launch(cfg, true)
 
+	time.Sleep(3 * time.Second)
+
 	req := request{
 		Transaction: []requestItem{
 			{
