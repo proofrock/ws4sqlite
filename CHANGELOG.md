@@ -1,5 +1,5 @@
 ## v0.14.1
-*2023-4-4, Fes*
+*2023-4-4, Beppu*
 
 - SQLite 3.40.2
 - Library updates
