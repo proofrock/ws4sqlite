@@ -10,7 +10,7 @@ cleanup:
 
 build:
 	make build-prepare
-	cd src; CGO_ENABLED=0 go build -a -tags netgo,osusergo,sqlite_omit_load_extension -ldflags '-w -extldflags "-static"' -o ws4sqlite -trimpath
+	cd src; CGO_ENABLED=0 go build -a -tags netgo,osusergo -ldflags '-w -extldflags "-static"' -o ws4sqlite -trimpath
 	mv src/ws4sqlite bin/
 
 zbuild:
