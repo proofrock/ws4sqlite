@@ -77,7 +77,7 @@ docker-publish:
 	sudo docker push germanorizzo/ws4sqlite:v0.14.1-arm64
 	sudo docker manifest create -a germanorizzo/ws4sqlite:v0.14.1 germanorizzo/ws4sqlite:v0.14.1-amd64 germanorizzo/ws4sqlite:v0.14.1-arm germanorizzo/ws4sqlite:v0.14.1-arm64
 	sudo docker manifest push germanorizzo/ws4sqlite:v0.14.1
-	sudo docker manifest rm germanorizzo/ws4sqlite:latest
+	- sudo docker manifest rm germanorizzo/ws4sqlite:latest
 	sudo docker manifest create germanorizzo/ws4sqlite:latest germanorizzo/ws4sqlite:v0.14.1-amd64 germanorizzo/ws4sqlite:v0.14.1-arm germanorizzo/ws4sqlite:v0.14.1-arm64
 	sudo docker manifest push germanorizzo/ws4sqlite:latest
 
