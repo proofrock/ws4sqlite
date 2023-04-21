@@ -63,7 +63,7 @@ test:
 	cd src; go test -v -timeout 6m
 
 docker:
-	sudo docker build --no-cache -t local_ws4sqlite:latest .
+	sudo docker buildx build --no-cache -t local_ws4sqlite:latest .
 
 docker-publish:
 	## Prepare system with:
@@ -82,5 +82,5 @@ docker-publish:
 	sudo docker manifest push germanorizzo/ws4sqlite:latest
 
 docker-devel:
-	sudo docker build --no-cache -t germanorizzo/ws4sqlite:edge .
+	sudo docker buildx build --no-cache -t germanorizzo/ws4sqlite:edge .
 	sudo docker push germanorizzo/ws4sqlite:edge
