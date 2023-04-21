@@ -19,6 +19,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	mllog "github.com/proofrock/go-mylittlelogger"
 	"os"
 	"strings"
 )
@@ -33,15 +34,19 @@ func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return false
+	} else if err != nil {
+		mllog.Fatal("in stating file '", filename, "': ", err.Error())
 	}
 	return !info.IsDir()
 }
 
 // Does a dir exist? No error returned.
-func dirExists(filename string) bool {
-	info, err := os.Stat(filename)
+func dirExists(dirname string) bool {
+	info, err := os.Stat(dirname)
 	if os.IsNotExist(err) {
 		return false
+	} else if err != nil {
+		mllog.Fatal("in stating dir '", dirname, "': ", err.Error())
 	}
 	return info.IsDir()
 }
