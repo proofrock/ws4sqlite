@@ -1,21 +1,15 @@
 # docker build -t ws4sqlite .
 
-FROM alpine:edge AS build
+FROM golang:latest as build
 
-RUN apk update
-RUN apk upgrade
-RUN apk add --update go git make
-WORKDIR /app
-ENV GOPATH /app
-RUN git clone https://github.com/proofrock/ws4sqlite
-WORKDIR /app/ws4sqlite
+WORKDIR /go/src/app
+COPY . .
+
+# RUN CGO_ENABLED=0 go build -o /go/bin/ws4sqlite -trimpath
 RUN make build-nostatic
 
-FROM alpine:latest
-
-COPY --from=build /app/ws4sqlite/bin/ws4sqlite /
-
-EXPOSE 12321
-VOLUME /data
+# Now copy it into our base image.
+FROM gcr.io/distroless/static-debian11
+COPY --from=build /go/src/app/bin/ws4sqlite /
 
 ENTRYPOINT ["/ws4sqlite"]
