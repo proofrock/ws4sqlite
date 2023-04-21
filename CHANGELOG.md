@@ -1,3 +1,11 @@
+## v0.14.2
+*2023-4-21, Busan*
+
+- Issue #25: Rebase docker image(s) on distroless/static-debian11
+- Issue #26: When checking file/dir existence, manage all errors
+- Some minor improvements to build
+- Library updates
+
 ## v0.14.1
 *2023-4-4, Beppu*
 
