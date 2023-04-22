@@ -68,7 +68,7 @@ docker:
 docker-publish:
 	## Prepare system with:
 	## (verify which is latest at https://hub.docker.com/r/docker/binfmt/tags)
-	sudo docker run --privileged --rm docker/binfmt:a7996909642ee92942dcd6cff44b9b95f08dad64
+	sudo docker run --privileged --rm tonistiigi/binfmt --install arm64,arm
 	sudo docker buildx build --no-cache -t germanorizzo/ws4sqlite:v0.14.2-amd64 .
 	sudo docker buildx build --no-cache --platform linux/arm/v7 -t germanorizzo/ws4sqlite:v0.14.2-arm .
 	sudo docker buildx build --no-cache --platform linux/arm64/v8 -t germanorizzo/ws4sqlite:v0.14.2-arm64 .
