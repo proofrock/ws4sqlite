@@ -40,6 +40,9 @@ zbuild-all:
 	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -a -tags netgo,osusergo -ldflags '-w -extldflags "-static"' -trimpath
 	cd src; tar czf ../bin/ws4sqlite-v0.14.2-linux-riscv64.tar.gz ws4sqlite
 	rm src/ws4sqlite
+	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=s390x go build -o ws4sqlite -trimpath
+	cd src; tar czf ../bin/ws4sqlite-v0.14.2-linux-s390x.tar.gz ws4sqlite
+	rm src/ws4sqlite
 	cd src; CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath
 	cd src; zip -9 ../bin/ws4sqlite-v0.14.2-darwin-amd64.zip ws4sqlite
 	rm src/ws4sqlite
