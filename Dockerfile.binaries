@@ -1,0 +1,17 @@
+# docker build -t ws4sqlite .
+
+FROM golang:latest as build
+
+RUN apt-get update
+RUN apt-get full-upgrade -y
+RUN apt-get install -y zip
+
+WORKDIR /go/src/app
+COPY . .
+
+RUN make test
+RUN make zbuild-all
+
+# Now copy it into our base image.
+FROM scratch AS export
+COPY --from=build /go/src/app/bin/* .

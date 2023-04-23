@@ -2,11 +2,13 @@
 
 FROM golang:latest as build
 
+RUN apt-get update
+RUN apt-get full-upgrade -y
+
 WORKDIR /go/src/app
 COPY . .
 
-# RUN CGO_ENABLED=0 go build -o /go/bin/ws4sqlite -trimpath
-RUN make build-nostatic
+RUN make build
 
 # Now copy it into our base image.
 FROM gcr.io/distroless/static-debian11
