@@ -3,7 +3,8 @@
 The build system uses `make`. There are two kinds of targets:
 
 - "direct" builds, that use go(lang) tooling to build a statically or dinamically linked binary or set of binaries;
-- docker-based builds, that build binaries or containers under a docker environment, using the "official" golang docker image as a base.
+- docker-based builds, that build binaries or containers under a docker environment, using the "official" golang docker 
+  image as a base.
 
 All binaries generated for distribution are statically linked.
 
@@ -24,8 +25,8 @@ the `bin/` folder.
 
 ## Docker targets
 
-In general, docker images are built in the debian-based official docker image, with the current updates applied; the
-generated binary is then distributed in a `distroless/static-debian11` image. The final size is about 20Mb.
+In general, docker images are built in the debian-based official docker image; the generated binary is then distributed
+in a `distroless/static-debian11` image. The final size is about 20Mb.
 
 *NB: buildx must be installed/enabled*
 *NB2: the **current** sources will be copied to the docker context.*

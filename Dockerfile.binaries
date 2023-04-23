@@ -1,4 +1,4 @@
-# docker build -t ws4sqlite .
+# Used by make docker-test-and-zbuild-all. See BUILDING.md
 
 FROM golang:latest as build
 

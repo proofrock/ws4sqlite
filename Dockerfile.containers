@@ -1,9 +1,6 @@
-# docker build -t ws4sqlite .
+# See BUILDING.md
 
 FROM golang:latest as build
-
-RUN apt-get update
-RUN apt-get full-upgrade -y
 
 WORKDIR /go/src/app
 COPY . .
@@ -13,5 +10,8 @@ RUN make build
 # Now copy it into our base image.
 FROM gcr.io/distroless/static-debian11
 COPY --from=build /go/src/app/bin/ws4sqlite /
+
+EXPOSE 12321
+VOLUME /data
 
 ENTRYPOINT ["/ws4sqlite"]
