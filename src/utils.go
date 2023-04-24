@@ -19,6 +19,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"os"
 	"strings"
@@ -72,4 +73,19 @@ func vals2nameds(vals map[string]interface{}) []interface{} {
 		nameds = append(nameds, sql.Named(key, val))
 	}
 	return nameds
+}
+
+// Processes paths with home (tilde) expansion. Fails if not valid
+func expandHomeDir(path string, desc string) string {
+	ePath, err := homedir.Expand(path)
+	if err != nil {
+		mllog.Fatalf("in expanding %s path: %s", desc, err.Error())
+	}
+	return ePath
+}
+
+// Returns the first two components of a column-delimited string; if there's no column, second is ""
+func splitOnColumn(toSplit string) (string, string) {
+	components := append(strings.SplitN(toSplit, ":", 2), "")
+	return components[0], components[1]
 }

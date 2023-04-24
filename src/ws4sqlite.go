@@ -160,10 +160,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 		mllog.StdOutf("- Serving database '%s' from %s", database.Id, connString)
 
-		if database.HasConfigFile {
-			mllog.StdOut("  + Parsed companion config file")
+		if database.CompanionFilePath != "" {
+			mllog.StdOutf("  + Parsed companion config file: %s", database.CompanionFilePath)
 		} else {
-			mllog.StdOut("  + No config file loaded, using defaults")
+			mllog.StdOut("  + No valid config file specified, using defaults")
 		}
 
 		if database.ReadOnly && toCreate && len(database.InitStatements) > 0 {

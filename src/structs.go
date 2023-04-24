@@ -75,7 +75,7 @@ type storedStatement struct {
 type db struct {
 	Id                      string
 	Path                    string
-	HasConfigFile           bool
+	CompanionFilePath       string
 	Auth                    *authr            `yaml:"auth"`
 	ReadOnly                bool              `yaml:"readOnly"`
 	CORSOrigin              string            `yaml:"corsOrigin"`

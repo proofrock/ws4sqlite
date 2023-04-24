@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"gopkg.in/yaml.v2"
 )
@@ -70,7 +69,6 @@ func parseCLI() config {
 	}
 
 	var ret config
-	var err error
 
 	// Fail fast
 	if len(dbFiles)+len(memDb) == 0 && *serveDir == "" {
@@ -78,22 +76,26 @@ func parseCLI() config {
 	}
 
 	for i := range dbFiles {
-		// resolves '~'
-		dbFiles[i], err = homedir.Expand(dbFiles[i])
-		if err != nil {
-			mllog.Fatal("in expanding database file path: ", err.Error())
-		}
+		// if there's no ":", second is empty ("")
+		dbFile, yamlFile := splitOnColumn(dbFiles[i])
 
-		dir := filepath.Dir(dbFiles[i])
+		// resolves '~'
+		dbFile = expandHomeDir(dbFile, "database file")
+
+		dir := filepath.Dir(dbFile)
 
 		//strips the extension from the file name (see issue #11)
-		id := strings.TrimSuffix(filepath.Base(dbFiles[i]), filepath.Ext(dbFiles[i]))
+		id := strings.TrimSuffix(filepath.Base(dbFile), filepath.Ext(dbFile))
 
 		if len(id) == 0 {
 			mllog.Fatal("base filename cannot be empty")
 		}
 
-		yamlFile := filepath.Join(dir, id+".yaml")
+		if yamlFile == "" {
+			yamlFile = filepath.Join(dir, id+".yaml")
+		} else {
+			yamlFile = expandHomeDir(yamlFile, "companion file")
+		}
 
 		var dbConfig db
 		if fileExists(yamlFile) {
@@ -105,27 +107,24 @@ func parseCLI() config {
 			if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
 				mllog.Fatal("in parsing config file: ", err.Error())
 			}
-
-			dbConfig.HasConfigFile = true
+		} else {
+			yamlFile = ""
 		}
 
 		dbConfig.Id = id
-		dbConfig.Path = dbFiles[i]
+		dbConfig.Path = dbFile
+		dbConfig.CompanionFilePath = yamlFile
 		ret.Databases = append(ret.Databases, dbConfig)
 	}
 
 	for i := range memDb {
-		components := append(strings.SplitN(memDb[i], ":", 2), "")
-		// if there's no ":", second is empty
-		id, yamlFile := components[0], components[1]
+		// if there's no ":", second is empty ("")
+		id, yamlFile := splitOnColumn(memDb[i])
 
 		var dbConfig db
 		if yamlFile != "" {
 			// resolves '~'
-			yamlFile, err = homedir.Expand(yamlFile)
-			if err != nil {
-				mllog.Fatal("in expanding mem-db yaml file path: ", err.Error())
-			}
+			yamlFile = expandHomeDir(yamlFile, "mem-db yaml file")
 
 			if !fileExists(yamlFile) {
 				mllog.Fatal("mem-db yaml file does not exist")
@@ -139,20 +138,23 @@ func parseCLI() config {
 			if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
 				mllog.Fatal("in parsing config file: ", err.Error())
 			}
-
-			dbConfig.HasConfigFile = true
 		}
 
 		dbConfig.Id = id
 		dbConfig.Path = ":memory:"
+		dbConfig.CompanionFilePath = yamlFile
 		ret.Databases = append(ret.Databases, dbConfig)
 	}
 
 	if *serveDir != "" {
-		if !dirExists(*serveDir) {
-			mllog.Fatalf("directory to serve as HTTP does not exist: %s", *serveDir)
+		sd := *serveDir
+		// resolves '~'
+		sd = expandHomeDir(sd, "directory to serve")
+
+		if !dirExists(sd) {
+			mllog.Fatalf("directory to serve does not exist: %s", *serveDir)
 		}
-		ret.ServeDir = serveDir
+		ret.ServeDir = &sd
 	}
 
 	// embed the cli parameters in the config
