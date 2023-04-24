@@ -77,7 +77,7 @@ func parseCLI() config {
 
 	for i := range dbFiles {
 		// if there's no ":", second is empty ("")
-		dbFile, yamlFile := splitOnColumn(dbFiles[i])
+		dbFile, yamlFile := splitOnColon(dbFiles[i])
 
 		// resolves '~'
 		dbFile = expandHomeDir(dbFile, "database file")
@@ -119,7 +119,7 @@ func parseCLI() config {
 
 	for i := range memDb {
 		// if there's no ":", second is empty ("")
-		id, yamlFile := splitOnColumn(memDb[i])
+		id, yamlFile := splitOnColon(memDb[i])
 
 		var dbConfig db
 		if yamlFile != "" {

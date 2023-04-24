@@ -85,7 +85,7 @@ func expandHomeDir(path string, desc string) string {
 }
 
 // Returns the first two components of a column-delimited string; if there's no column, second is ""
-func splitOnColumn(toSplit string) (string, string) {
+func splitOnColon(toSplit string) (string, string) {
 	components := append(strings.SplitN(toSplit, ":", 2), "")
 	return components[0], components[1]
 }
