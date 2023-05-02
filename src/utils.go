@@ -89,11 +89,11 @@ func expandHomeDir(path string, desc string) string {
 // Crude but effective, I guess. At least, it's optimal for what I use it for: understand if a colon in second place is
 // a drive separator or not
 func isWindows() bool {
-	abshere, err := filepath.Abs(".")
+	abshere, err := filepath.Abs(".") // in docker, this is "/"
 	if err != nil {
 		mllog.Fatalf("Error in OS detection: %s", err)
 	}
-	return bytes.Runes([]byte(abshere))[1] == ':'
+	return len(abshere) > 1 && bytes.Runes([]byte(abshere))[1] == ':'
 }
 
 var isWin = isWindows()
