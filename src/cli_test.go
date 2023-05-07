@@ -122,7 +122,7 @@ func TestConfigs(t *testing.T) {
 
 	assert(t, cfg.Databases[0].Id == "test1", "the db has a wrong id")
 	assert(t, cfg.Databases[0].Path == "../test/test1.db", "the db has not the correct Path")
-	assert(t, cfg.Databases[0].HasConfigFile, "the db is not correctly marked regarding having config file")
+	assert(t, cfg.Databases[0].CompanionFilePath != "", "the db is not correctly marked regarding having config file")
 	assert(t, cfg.Databases[0].Auth.Mode == authModeHttp, "the db has not the correct Auth Mode")
 	assert(t, cfg.Databases[0].Auth.ByQuery == "", "the db has ByQuery with a value")
 	assert(t, len(cfg.Databases[0].Auth.ByCredentials) == 2, "the db has not the correct number of credentials")
@@ -146,7 +146,7 @@ func TestConfigs(t *testing.T) {
 
 	assert(t, cfg.Databases[1].Id == "test2", "the db has a wrong id")
 	assert(t, cfg.Databases[1].Path == "../test/test2.db", "the db has not the correct Path")
-	assert(t, !cfg.Databases[1].HasConfigFile, "the db is not correctly marked regarding having config file")
+	assert(t, cfg.Databases[1].CompanionFilePath == "", "the db is not correctly marked regarding having config file")
 	assert(t, cfg.Databases[1].Auth == nil, "the db has not the correct Auth Mode")
 	assert(t, !cfg.Databases[1].DisableWALMode, "the db has not the correct WAL mode")
 	assert(t, !cfg.Databases[1].ReadOnly, "the db has not the correct ReadOnly value")
@@ -158,7 +158,7 @@ func TestConfigs(t *testing.T) {
 
 	assert(t, cfg.Databases[2].Id == "mem1", "the db has a wrong id")
 	assert(t, cfg.Databases[2].Path == ":memory:", "the db is not on memory")
-	assert(t, cfg.Databases[2].HasConfigFile, "the db is not correctly marked regarding having config file")
+	assert(t, cfg.Databases[2].CompanionFilePath != "", "the db is not correctly marked regarding having config file")
 	assert(t, cfg.Databases[2].Auth.Mode == authModeInline, "the db has not the correct Auth Mode")
 	assert(t, cfg.Databases[2].Auth.ByQuery != "", "the db has ByQuery without a value")
 	assert(t, len(cfg.Databases[2].Auth.ByCredentials) == 0, "the db has not the correct number of credentials")
@@ -172,7 +172,7 @@ func TestConfigs(t *testing.T) {
 
 	assert(t, cfg.Databases[3].Id == "mem2", "the db has a wrong id")
 	assert(t, cfg.Databases[3].Path == ":memory:", "the db is not on memory")
-	assert(t, !cfg.Databases[3].HasConfigFile, "the db is not correctly marked regarding having config file")
+	assert(t, cfg.Databases[3].CompanionFilePath == "", "the db is not correctly marked regarding having config file")
 	assert(t, cfg.Databases[3].Auth == nil, "the db has not the correct Auth Mode")
 	assert(t, !cfg.Databases[3].DisableWALMode, "the db has not the correct WAL mode")
 	assert(t, !cfg.Databases[3].ReadOnly, "the db has not the correct ReadOnly value")

@@ -72,7 +72,7 @@ Obtaining an answer of
 - [**Embedded web server**](https://germ.gitbook.io/ws4sqlite/documentation/web-server) to directly serve web pages that can access ws4sqlite without CORS;
 - Compact codebase;
 - Comprehensive test suite (`make test`);
-- 10 os's/arch's directly supported;
+- 11 os's/arch's directly supported;
 - [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), for amd64, arm and arm64.
 
 # Security Features
