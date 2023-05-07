@@ -1,4 +1,4 @@
-## v 0.15.0
+## v0.15.0
 *2023-05-07, Windhoek*
 
 - Issue #29: Allow different path for db companion YAML file
