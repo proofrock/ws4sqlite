@@ -1,3 +1,12 @@
+## v 0.15.0
+*2023-05-07, Windhoek*
+
+- Issue #29: Allow different path for db companion YAML file
+- Issue #28: Rework build system
+- Issue #27: Add support for linux/S390x
+- Documentation regarding #33 (Dockerfile: allow specifying UID/GID with which ws4sqlite starts)
+- Library updates
+
 ## v0.14.2
 *2023-4-21, Busan*
 
