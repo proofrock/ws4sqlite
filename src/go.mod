@@ -3,7 +3,7 @@ module github.com/proofrock/ws4sqlite
 go 1.20
 
 require (
-	github.com/gofiber/fiber/v2 v2.46.0
+	github.com/gofiber/fiber/v2 v2.47.0
 	github.com/lnquy/cron v1.1.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/proofrock/crypgo v1.2.1
