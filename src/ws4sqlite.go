@@ -20,22 +20,23 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/wI2L/jettison"
-	"os"
-	"strings"
-	"sync"
-	"time"
 
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.15.0"
+const version = "0.15.1"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
