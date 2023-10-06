@@ -1,6 +1,10 @@
 # 🌱 ws4sqlite
 
-**ws4sqlite** is a server application that, applied to one or more SQLite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
+> *This project has now a reimplementarion in Rust, called `sqliterg`, at [**sqliterg.dev**](https://docs.sqliterg.dev). It is not a 1:1 rewrite, but I tried to fix some concepts that I feel I got wrong here; plus it's smaller, (even) faster, (even) less memory-hungry and it can be built with an embedded sqlite or using the one on the system. You should feel at home with it, anyway a [migration guide is here](https://docs.sqliterg.dev/features/migrating-from-ws4sqlite).*
+
+> *`ws4sqlite` is **not really** deprecated, it will continue to receive libraries updates (about monthly), but probably not new features.*
+
+**`ws4sqlite`** is a server application that, applied to one or more sqlite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
 
 Possible use cases are the ones where remote access to a sqlite db is useful/needed, for example a data layer for a remote application, possibly serverless or even called from a web page (*after security considerations* of course).
 

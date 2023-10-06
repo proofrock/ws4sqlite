@@ -1,3 +1,9 @@
+## v0.15.1
+*2023-10-06, Venice*
+
+- Library updates
+- First version of [`sqliterg`](https://github.com/proofrock/sqliterg), the "spiritual successor" to `ws4sqlite`.
+
 ## v0.15.0
 *2023-05-07, Windhoek*
 
