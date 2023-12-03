@@ -1,3 +1,8 @@
+## v0.15.2
+*2023-12-03, Venice*
+
+- Library updates (incl. security fixes upstream)
+
 ## v0.15.1
 *2023-10-06, Venice*
 

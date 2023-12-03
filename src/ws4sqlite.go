@@ -36,7 +36,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.15.1"
+const version = "0.15.2"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
