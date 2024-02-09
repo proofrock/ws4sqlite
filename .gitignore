@@ -3,6 +3,7 @@ bin/
 .vscode/
 .idea/
 /notes.md
+test/*.db
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,macos,linux,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,macos,linux,windows
