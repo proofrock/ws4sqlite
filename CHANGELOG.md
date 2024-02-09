@@ -1,3 +1,10 @@
+## v0.15.3
+*2024-02-09, Venice*
+
+- CI with Github Actions
+- Switched to trunk based workflow
+- Library updates (incl. security fixes upstream)
+
 ## v0.15.2
 *2023-12-03, Venice*
 
