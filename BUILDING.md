@@ -8,6 +8,10 @@ The build system uses `make`. There are two kinds of targets:
 
 All binaries generated for distribution are statically linked.
 
+**N.B.**: the actual releases are performed with Github Actions, so they don't use these targets directly; they do use the same instructions however.
+
+Please also note that in `Makefile` and `ws4sqlite.go` the version is specified as `v0.0.0`, to be replaced by the Github Action's script. Replace it at your leisure.
+
 ## Direct targets
 
 #### make build

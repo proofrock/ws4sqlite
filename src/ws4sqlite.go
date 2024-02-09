@@ -36,7 +36,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-const version = "0.15.2"
+const version = "v0.0.0"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
@@ -57,7 +57,7 @@ func getSQLiteVersion() (string, error) {
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
-	header := fmt.Sprintf("ws4sqlite v%s", version)
+	header := fmt.Sprintf("ws4sqlite %s", version)
 	sqliteVersion, err := getSQLiteVersion()
 	if err != nil {
 		mllog.StdOut(header)
