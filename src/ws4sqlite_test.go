@@ -388,6 +388,59 @@ func TestConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
+func TestResultSetOrder(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Query: "CREATE TABLE t1 (d INT, c INT, b INT, a INT)",
+			},
+			{
+				Query: "INSERT INTO t1 VALUES (4, 3, 2, 1)",
+			},
+			{
+				Query: "SELECT * FROM t1",
+			},
+		},
+	}
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success ||
+		!res.Results[1].Success ||
+		!res.Results[2].Success {
+		t.Error("did not succeed")
+		return
+	}
+
+	queryResult := res.Results[2].ResultSet[0]
+	expectedKeys := []string{"d", "c", "b", "a"}
+	if !slices.Equal(
+		queryResult.Keys(),
+		expectedKeys,
+	) {
+		t.Error("should have the right order")
+		return
+	}
+
+	expectedValues := []float64{4, 3, 2, 1}
+	for i, key := range expectedKeys {
+		value, ok := queryResult.Get(key)
+		if !ok {
+			t.Error("unreachable code")
+			return
+		}
+		expectedValue := expectedValues[i]
+		if value != expectedValue {
+			t.Error("wrong value")
+			return
+		}
+	}
+}
+
 // don't remove the file, we'll use it for the next tests for read-only
 func TestTeardown(t *testing.T) {
 	time.Sleep(time.Second)
@@ -1406,68 +1459,4 @@ func TestFileServerWithOverlap(t *testing.T) {
 	time.Sleep(time.Second)
 
 	Shutdown()
-}
-
-func TestResultSetOrder(t *testing.T) {
-	cfg := config{
-		Bindhost: "0.0.0.0",
-		Port:     12321,
-		Databases: []db{
-			{
-				Id:   "test",
-				Path: ":memory:",
-				InitStatements: []string{
-					"CREATE TABLE t1 (d INT, c INT, b INT, a INT)",
-					"INSERT INTO t1 VALUES (4, 3, 2, 1)",
-				},
-			},
-		},
-	}
-	// TODO: move setup and teardown to somewhere else more appropriate?
-	go launch(cfg, true)
-	defer Shutdown()
-	time.Sleep(time.Second)
-
-	req := request{
-		Transaction: []requestItem{
-			{
-				Query: "SELECT * FROM t1",
-			},
-		},
-	}
-	code, _, res := call("test", req, t)
-
-	if code != 200 {
-		t.Error("did not succeed")
-		return
-	}
-
-	if !res.Results[0].Success {
-		t.Error("did not succeed")
-		return
-	}
-
-	queryResult := res.Results[0].ResultSet[0]
-	expectedKeys := []string{"d", "c", "b", "a"}
-	if !slices.Equal(
-		queryResult.Keys(),
-		expectedKeys,
-	) {
-		t.Error("should have the right order")
-		return
-	}
-
-	expectedValues := []float64{4, 3, 2, 1}
-	for i, key := range expectedKeys {
-		value, ok := queryResult.Get(key)
-		if !ok {
-			t.Error("unreachable code")
-			return
-		}
-		expectedValue := expectedValues[i]
-		if value != expectedValue {
-			t.Error("wrong value")
-			return
-		}
-	}
 }
