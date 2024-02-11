@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"github.com/iancoleman/orderedmap"
 	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"os"
@@ -120,4 +121,14 @@ func splitOnColon(toSplit string) (string, string) {
 		return toSplit[:pos], toSplit[pos+1:]
 	}
 	return toSplit, ""
+}
+
+func getDefault[T any](m orderedmap.OrderedMap, key string) T {
+	value, ok := m.Get(key)
+	if !ok {
+		var t T
+		return t
+	}
+
+	return value.(T)
 }

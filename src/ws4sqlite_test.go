@@ -111,7 +111,7 @@ func TestSetup(t *testing.T) {
 			{
 				Id:   "test",
 				Path: "../test/test.db",
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",
@@ -224,7 +224,7 @@ func TestTx(t *testing.T) {
 		t.Error("req 1 inconsistent")
 	}
 
-	if !res.Results[2].Success || res.Results[2].ResultSet[0]["VAL"] != "ONE" {
+	if !res.Results[2].Success || getDefault[string](res.Results[2].ResultSet[0], "VAL") != "ONE" {
 		t.Error("req 2 inconsistent")
 	}
 
@@ -367,7 +367,7 @@ func TestConcurrent(t *testing.T) {
 				t.Error("req 1 inconsistent")
 			}
 
-			if !res.Results[2].Success || res.Results[2].ResultSet[0]["VAL"] != "ONE" {
+			if !res.Results[2].Success || getDefault[string](res.Results[2].ResultSet[0], "VAL") != "ONE" {
 				t.Error("req 2 inconsistent")
 			}
 
@@ -403,7 +403,7 @@ func TestSetupRO(t *testing.T) {
 			{
 				Id:   "test",
 				Path: "../test/test.db",
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				ReadOnly: true,
 				StoredStatement: []storedStatement{
 					{
@@ -451,7 +451,7 @@ func TestOkRO(t *testing.T) {
 		return
 	}
 
-	if !res.Results[0].Success || res.Results[0].ResultSet[3]["VAL"] != "FOUR" {
+	if !res.Results[0].Success || getDefault[string](res.Results[0].ResultSet[3], "VAL") != "FOUR" {
 		t.Error("req is inconsistent")
 	}
 }
@@ -478,7 +478,7 @@ func TestConcurrentRO(t *testing.T) {
 				return
 			}
 
-			if !res.Results[0].Success || res.Results[0].ResultSet[3]["VAL"] != "FOUR" {
+			if !res.Results[0].Success || getDefault[string](res.Results[0].ResultSet[3], "VAL") != "FOUR" {
 				t.Error("req is inconsistent")
 			}
 		}(t)
@@ -501,7 +501,7 @@ func TestSetupSQO(t *testing.T) {
 			{
 				Id:   "test",
 				Path: "../test/test.db",
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				ReadOnly:                true,
 				UseOnlyStoredStatements: true,
 				StoredStatement: []storedStatement{
@@ -569,7 +569,7 @@ func TestSetupMEM(t *testing.T) {
 			{
 				Id:   "test",
 				Path: ":memory:",
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",
@@ -640,7 +640,7 @@ func TestSetupMEM_RO(t *testing.T) {
 				Id:       "test",
 				Path:     ":memory:",
 				ReadOnly: true,
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",
@@ -689,7 +689,7 @@ func TestSetupWITH_ADD_PROPS(t *testing.T) {
 			{
 				Id:   "test",
 				Path: "file::memory:",
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",
@@ -740,7 +740,7 @@ func TestRO_MEM_IS(t *testing.T) {
 				Id:       "test",
 				Path:     ":memory:",
 				ReadOnly: true,
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 				},
@@ -767,7 +767,7 @@ func Test_IS_Err(t *testing.T) {
 			{
 				Id:   "test",
 				Path: ":memory:",
-				//DisableWALMode: true,
+				// DisableWALMode: true,
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 					"CREATE TABLE T1 (ID INT)",
@@ -1213,7 +1213,7 @@ func TestUnicode(t *testing.T) {
 	if code != 200 {
 		t.Error("SELECT failed", body)
 	}
-	if res.Results[0].ResultSet[0]["TXT"] != "世界" {
+	if getDefault[string](res.Results[0].ResultSet[0], "TXT") != "世界" {
 		t.Error("Unicode extraction failed", body)
 	}
 

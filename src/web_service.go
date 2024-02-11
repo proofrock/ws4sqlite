@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/iancoleman/orderedmap"
 	"strings"
 	"time"
 
@@ -74,20 +75,21 @@ func encrypt(encoder requestItemCrypto, values map[string]interface{}) error {
 }
 
 // Scans the results from a db request and decrypts them as needed
-func decrypt(decoder requestItemCrypto, results map[string]interface{}) error {
+func decrypt(decoder requestItemCrypto, results *orderedmap.OrderedMap) error {
 	if decoder.CompressionLevel > 0 {
 		return errors.New("cannot specify compression level for decryption")
 	}
 	for i := range decoder.Fields {
-		sval, ok := results[decoder.Fields[i]].(string)
+		// sval, ok := results[decoder.Fields[i]].(string)
+		sval, ok := results.Get(decoder.Fields[i])
 		if !ok {
 			return errors.New("attempting to decrypt a non-string field")
 		}
-		dval, err := crypgo.Decrypt(decoder.Password, sval)
+		dval, err := crypgo.Decrypt(decoder.Password, sval.(string))
 		if err != nil {
 			return err
 		}
-		results[decoder.Fields[i]] = dval
+		results.Set(decoder.Fields[i], dval)
 	}
 	return nil
 }
@@ -106,7 +108,7 @@ func reportError(err error, code int, reqIdx int, noFail bool, results []respons
 //
 // This method is needed to execute properly the defers.
 func processWithResultSet(tx *sql.Tx, query string, decoder *requestItemCrypto, values map[string]interface{}) (*responseItem, error) {
-	resultSet := make([]map[string]interface{}, 0)
+	resultSet := make([]orderedmap.OrderedMap, 0)
 
 	rows, err := tx.Query(query, vals2nameds(values)...)
 	if err != nil {
@@ -125,9 +127,9 @@ func processWithResultSet(tx *sql.Tx, query string, decoder *requestItemCrypto, 
 			return nil, err
 		}
 
-		toAdd := make(map[string]interface{})
+		toAdd := orderedmap.New()
 		for i := range values {
-			toAdd[fields[i]] = values[i]
+			toAdd.Set(fields[i], values[i])
 		}
 
 		if decoder != nil {
@@ -135,7 +137,7 @@ func processWithResultSet(tx *sql.Tx, query string, decoder *requestItemCrypto, 
 				return nil, err
 			}
 		}
-		resultSet = append(resultSet, toAdd)
+		resultSet = append(resultSet, *toAdd)
 	}
 
 	if err = rows.Err(); err != nil {
