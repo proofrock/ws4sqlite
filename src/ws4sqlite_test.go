@@ -389,16 +389,17 @@ func TestConcurrent(t *testing.T) {
 }
 
 func TestResultSetOrder(t *testing.T) {
+	// See this issue for more context: https://github.com/proofrock/sqliterg/issues/5
 	req := request{
 		Transaction: []requestItem{
 			{
-				Query: "CREATE TABLE t1 (d INT, c INT, b INT, a INT)",
+				Query: "CREATE TABLE table_with_many_columns (d INT, c INT, b INT, a INT)",
 			},
 			{
-				Query: "INSERT INTO t1 VALUES (4, 3, 2, 1)",
+				Query: "INSERT INTO table_with_many_columns VALUES (4, 3, 2, 1)",
 			},
 			{
-				Query: "SELECT * FROM t1",
+				Query: "SELECT * FROM table_with_many_columns",
 			},
 		},
 	}
