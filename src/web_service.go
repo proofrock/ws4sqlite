@@ -63,10 +63,18 @@ func reportError(err error, code int, reqIdx int, noFail bool, results []respons
 // Processes a query, and returns a suitable responseItem
 //
 // This method is needed to execute properly the defers.
-func processWithResultSet(tx *sql.Tx, query string, values map[string]interface{}) (*responseItem, error) {
+func processWithResultSet(tx *sql.Tx, query string, params requestParams) (*responseItem, error) {
 	resultSet := make([]orderedmap.OrderedMap, 0)
 
-	rows, err := tx.Query(query, vals2nameds(values)...)
+	rows := (*sql.Rows)(nil)
+	err := (error)(nil)
+	if params.UnmarshalledDict == nil && params.UnmarshalledArray == nil {
+		rows, err = nil, errors.New("processWithResultSet unreachable code")
+	} else if params.UnmarshalledDict != nil {
+		rows, err = tx.Query(query, vals2nameds(params.UnmarshalledDict)...)
+	} else {
+		rows, err = tx.Query(query, params.UnmarshalledArray...)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +107,16 @@ func processWithResultSet(tx *sql.Tx, query string, values map[string]interface{
 }
 
 // Process a single statement, and returns a suitable responseItem
-func processForExec(tx *sql.Tx, statement string, values map[string]interface{}) (*responseItem, error) {
-	res, err := tx.Exec(statement, vals2nameds(values)...)
+func processForExec(tx *sql.Tx, statement string, params requestParams) (*responseItem, error) {
+	res := (sql.Result)(nil)
+	err := (error)(nil)
+	if params.UnmarshalledDict == nil && params.UnmarshalledArray == nil {
+		res, err = nil, errors.New("processWithResultSet unreachable code")
+	} else if params.UnmarshalledDict != nil {
+		res, err = tx.Exec(statement, vals2nameds(params.UnmarshalledDict)...)
+	} else {
+		res, err = tx.Exec(statement, params.UnmarshalledArray...)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +131,7 @@ func processForExec(tx *sql.Tx, statement string, values map[string]interface{})
 
 // Process a batch statement, and returns a suitable responseItem.
 // It prepares the statement, then executes it for each of the values' sets.
-func processForExecBatch(tx *sql.Tx, q string, valuesBatch []map[string]interface{}) (*responseItem, error) {
+func processForExecBatch(tx *sql.Tx, q string, paramsBatch []requestParams) (*responseItem, error) {
 	ps, err := tx.Prepare(q)
 	if err != nil {
 		return nil, err
@@ -123,8 +139,16 @@ func processForExecBatch(tx *sql.Tx, q string, valuesBatch []map[string]interfac
 	defer ps.Close()
 
 	var rowsUpdatedBatch []int64
-	for i := range valuesBatch {
-		res, err := ps.Exec(vals2nameds(valuesBatch[i])...)
+	for _, params := range paramsBatch {
+		res := (sql.Result)(nil)
+		err := (error)(nil)
+		if params.UnmarshalledDict == nil && params.UnmarshalledArray == nil {
+			res, err = nil, errors.New("processWithResultSet unreachable code")
+		} else if params.UnmarshalledDict != nil {
+			res, err = tx.Exec(q, vals2nameds(params.UnmarshalledDict)...)
+		} else {
+			res, err = tx.Exec(q, params.UnmarshalledArray...)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +239,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 
 			hasResultSet := txItem.Query != ""
 
-			if len(txItem.Values) != 0 && len(txItem.ValuesBatch) != 0 {
+			if !isEmptyRaw(txItem.Values) && len(txItem.ValuesBatch) != 0 {
 				reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
 			}
@@ -256,18 +280,18 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 
 			if len(txItem.ValuesBatch) > 0 {
 				// Process a batch statement (multiple values)
-				var valuesBatch []map[string]interface{}
+				var paramsBatch []requestParams
 				for i2 := range txItem.ValuesBatch {
-					values, err := raw2vals(txItem.ValuesBatch[i2])
+					params, err := raw2params(txItem.ValuesBatch[i2])
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue
 					}
 
-					valuesBatch = append(valuesBatch, values)
+					paramsBatch = append(paramsBatch, *params)
 				}
 
-				retE, err := processForExecBatch(tx, sqll, valuesBatch)
+				retE, err := processForExecBatch(tx, sqll, paramsBatch)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -276,7 +300,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				ret.Results[i] = *retE
 			} else {
 				// At most one values set (be it query or statement)
-				values, err := raw2vals(txItem.Values)
+				params, err := raw2params(txItem.Values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -285,7 +309,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				if hasResultSet {
 					// Query
 					// Externalized in a func so that defer rows.Close() actually runs
-					retWR, err := processWithResultSet(tx, sqll, values)
+					retWR, err := processWithResultSet(tx, sqll, *params)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue
@@ -294,7 +318,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 					ret.Results[i] = *retWR
 				} else {
 					// Statement
-					retE, err := processForExec(tx, sqll, values)
+					retE, err := processForExec(tx, sqll, *params)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue

@@ -93,13 +93,9 @@ func call(databaseId string, req request, t *testing.T) (int, string, response) 
 	return callBA(databaseId, req, "", "", t)
 }
 
-func mkRaw(mapp map[string]interface{}) map[string]json.RawMessage {
-	ret := make(map[string]json.RawMessage)
-	for k, v := range mapp {
-		bytes, _ := json.Marshal(v)
-		ret[k] = bytes
-	}
-	return ret
+func mkRaw(mapp any) json.RawMessage {
+	bs, _ := json.Marshal(mapp)
+	return bs
 }
 
 func TestSetup(t *testing.T) {
@@ -191,7 +187,7 @@ func TestTx(t *testing.T) {
 			},
 			{
 				Statement: "INSERT INTO T1 (ID, VAL) VALUES (:ID, :VAL)",
-				ValuesBatch: []map[string]json.RawMessage{
+				ValuesBatch: []json.RawMessage{
 					mkRaw(map[string]interface{}{
 						"ID":  3,
 						"VAL": "THREE",
@@ -328,7 +324,7 @@ func TestConcurrent(t *testing.T) {
 			},
 			{
 				Statement: "INSERT INTO T1 (ID, VAL) VALUES (:ID, :VAL)",
-				ValuesBatch: []map[string]json.RawMessage{
+				ValuesBatch: []json.RawMessage{
 					mkRaw(map[string]interface{}{
 						"ID":  3,
 						"VAL": "THREE",
@@ -439,6 +435,50 @@ func TestResultSetOrder(t *testing.T) {
 			t.Error("wrong value")
 			return
 		}
+	}
+}
+
+func TestArrayParams(t *testing.T) {
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "CREATE TABLE table_with_many_columns (d INT, c INT, b INT, a INT)",
+			},
+			{
+				Statement: "INSERT INTO table_with_many_columns VALUES (?, ?, ?, ?)",
+				Values:    mkRaw([]int{1, 1, 1, 1}),
+			},
+			{
+				Statement: "INSERT INTO table_with_many_columns VALUES (?, ?, ?, ?)",
+				ValuesBatch: []json.RawMessage{
+					mkRaw([]int{2, 2, 2, 2}),
+					mkRaw([]int{3, 3, 3, 3}),
+					mkRaw([]int{4, 4, 4, 4}),
+				},
+			},
+			{
+				Query: "SELECT * FROM table_with_many_columns",
+			},
+			{
+				Statement: "DROP TABLE table_with_many_columns",
+			},
+		},
+	}
+	code, _, resp := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+	queryResult := resp.Results[3]
+	if !queryResult.Success {
+		t.Error("could not query")
+		return
+	}
+	records := queryResult.ResultSet
+	if len(records) != 4 {
+		t.Error("expected 4 records")
+		return
 	}
 }
 
@@ -1137,7 +1177,7 @@ func TestItemFieldsInsertBatch(t *testing.T) {
 		Transaction: []requestItem{
 			{
 				Statement: "INSERT INTO T1 VALUES (:ID, :VAL)",
-				ValuesBatch: []map[string]json.RawMessage{
+				ValuesBatch: []json.RawMessage{
 					mkRaw(map[string]interface{}{
 						"ID":  3,
 						"VAL": "THREE",
