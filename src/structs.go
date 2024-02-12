@@ -20,6 +20,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/iancoleman/orderedmap"
 	"sync"
 )
 
@@ -129,11 +130,11 @@ type request struct {
 // These are for generating the response
 
 type responseItem struct {
-	Success          bool                     `json:"success"`
-	RowsUpdated      *int64                   `json:"rowsUpdated,omitempty"`
-	RowsUpdatedBatch []int64                  `json:"rowsUpdatedBatch,omitempty"`
-	ResultSet        []map[string]interface{} `json:"resultSet,omitnil"` // omitnil is used by jettison
-	Error            string                   `json:"error,omitempty"`
+	Success          bool                    `json:"success"`
+	RowsUpdated      *int64                  `json:"rowsUpdated,omitempty"`
+	RowsUpdatedBatch []int64                 `json:"rowsUpdatedBatch,omitempty"`
+	ResultSet        []orderedmap.OrderedMap `json:"resultSet,omitnil"` // omitnil is used by jettison
+	Error            string                  `json:"error,omitempty"`
 }
 
 type response struct {

@@ -236,7 +236,7 @@ func TestSchedTasksWithStatement(t *testing.T) {
 		t.Error("did not succeed, but should have")
 	}
 
-	if fmt.Sprint(res.Results[0].ResultSet[0]["num"]) != "17" {
+	if fmt.Sprint(getDefault[float64](res.Results[0].ResultSet[0], "num")) != "17" {
 		t.Error("scheduled statement probably didn't execute")
 	}
 }
