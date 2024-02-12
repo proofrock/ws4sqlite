@@ -20,12 +20,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"github.com/iancoleman/orderedmap"
 	"strings"
 	"time"
 
+	"github.com/iancoleman/orderedmap"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/proofrock/crypgo"
 )
 
 // Catches the panics and converts the argument in a struct that Fiber uses to
@@ -50,50 +50,6 @@ func errHandler(c *fiber.Ctx, err error) error {
 	return c.Status(ret.Code).JSON(ret)
 }
 
-// Scans the values for a db request and encrypts them as needed
-func encrypt(encoder requestItemCrypto, values map[string]interface{}) error {
-	for i := range encoder.Fields {
-		sval, ok := values[encoder.Fields[i]].(string)
-		if !ok {
-			return errors.New("attempting to encrypt a non-string field")
-		}
-		var eval string
-		var err error
-		if encoder.CompressionLevel < 1 {
-			eval, err = crypgo.Encrypt(encoder.Password, sval)
-		} else if encoder.CompressionLevel < 20 {
-			eval, err = crypgo.CompressAndEncrypt(encoder.Password, sval, encoder.CompressionLevel)
-		} else {
-			return errors.New("compression level is in the range 0-19")
-		}
-		if err != nil {
-			return err
-		}
-		values[encoder.Fields[i]] = eval
-	}
-	return nil
-}
-
-// Scans the results from a db request and decrypts them as needed
-func decrypt(decoder requestItemCrypto, results *orderedmap.OrderedMap) error {
-	if decoder.CompressionLevel > 0 {
-		return errors.New("cannot specify compression level for decryption")
-	}
-	for i := range decoder.Fields {
-		// sval, ok := results[decoder.Fields[i]].(string)
-		sval, ok := results.Get(decoder.Fields[i])
-		if !ok {
-			return errors.New("attempting to decrypt a non-string field")
-		}
-		dval, err := crypgo.Decrypt(decoder.Password, sval.(string))
-		if err != nil {
-			return err
-		}
-		results.Set(decoder.Fields[i], dval)
-	}
-	return nil
-}
-
 // For a single query item, deals with a failure, determining if it must invalidate all of the transaction
 // or just report an error in the single query. In the former case, fails fast (panics), else it appends
 // the error to the response items, so the caller needs to return7continue
@@ -107,7 +63,7 @@ func reportError(err error, code int, reqIdx int, noFail bool, results []respons
 // Processes a query, and returns a suitable responseItem
 //
 // This method is needed to execute properly the defers.
-func processWithResultSet(tx *sql.Tx, query string, decoder *requestItemCrypto, values map[string]interface{}) (*responseItem, error) {
+func processWithResultSet(tx *sql.Tx, query string, values map[string]interface{}) (*responseItem, error) {
 	resultSet := make([]orderedmap.OrderedMap, 0)
 
 	rows, err := tx.Query(query, vals2nameds(values)...)
@@ -132,11 +88,6 @@ func processWithResultSet(tx *sql.Tx, query string, decoder *requestItemCrypto, 
 			toAdd.Set(fields[i], values[i])
 		}
 
-		if decoder != nil {
-			if err := decrypt(*decoder, toAdd); err != nil {
-				return nil, err
-			}
-		}
 		resultSet = append(resultSet, *toAdd)
 	}
 
@@ -264,16 +215,6 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 
 			hasResultSet := txItem.Query != ""
 
-			if hasResultSet && txItem.Encoder != nil {
-				reportError(errors.New("cannot specify an encoder for a query"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-				continue
-			}
-
-			if !hasResultSet && txItem.Decoder != nil {
-				reportError(errors.New("cannot specify a decoder for a statement"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
-				continue
-			}
-
 			if len(txItem.Values) != 0 && len(txItem.ValuesBatch) != 0 {
 				reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
@@ -323,13 +264,6 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 						continue
 					}
 
-					if txItem.Encoder != nil {
-						if err := encrypt(*txItem.Encoder, values); err != nil {
-							reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-							continue
-						}
-					}
-
 					valuesBatch = append(valuesBatch, values)
 				}
 
@@ -348,17 +282,10 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 					continue
 				}
 
-				if txItem.Encoder != nil {
-					if err := encrypt(*txItem.Encoder, values); err != nil {
-						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
-						continue
-					}
-				}
-
 				if hasResultSet {
 					// Query
 					// Externalized in a func so that defer rows.Close() actually runs
-					retWR, err := processWithResultSet(tx, sqll, txItem.Decoder, values)
+					retWR, err := processWithResultSet(tx, sqll, values)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue

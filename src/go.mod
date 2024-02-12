@@ -4,9 +4,9 @@ go 1.20
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.0
+	github.com/iancoleman/orderedmap v0.3.0
 	github.com/lnquy/cron v1.1.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/proofrock/crypgo v1.2.1
 	github.com/proofrock/go-mylittlelogger v0.4.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wI2L/jettison v0.7.4
@@ -18,7 +18,6 @@ require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/iancoleman/orderedmap v0.3.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -30,7 +29,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/mod v0.15.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect

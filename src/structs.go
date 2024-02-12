@@ -20,8 +20,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/iancoleman/orderedmap"
 	"sync"
+
+	"github.com/iancoleman/orderedmap"
 )
 
 // This is the ws4sqlite error type
@@ -106,20 +107,12 @@ type credentials struct {
 	Password string `json:"password"`
 }
 
-type requestItemCrypto struct {
-	Password         string   `json:"password"`
-	Fields           []string `json:"fields"`
-	CompressionLevel int      `json:"compressionLevel"`
-}
-
 type requestItem struct {
 	Query       string                       `json:"query"`
 	Statement   string                       `json:"statement"`
 	NoFail      bool                         `json:"noFail"`
 	Values      map[string]json.RawMessage   `json:"values"`
 	ValuesBatch []map[string]json.RawMessage `json:"valuesBatch"`
-	Encoder     *requestItemCrypto           `json:"encoder"`
-	Decoder     *requestItemCrypto           `json:"decoder"`
 }
 
 type request struct {
