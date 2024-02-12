@@ -108,16 +108,21 @@ type credentials struct {
 }
 
 type requestItem struct {
-	Query       string                       `json:"query"`
-	Statement   string                       `json:"statement"`
-	NoFail      bool                         `json:"noFail"`
-	Values      map[string]json.RawMessage   `json:"values"`
-	ValuesBatch []map[string]json.RawMessage `json:"valuesBatch"`
+	Query       string            `json:"query"`
+	Statement   string            `json:"statement"`
+	NoFail      bool              `json:"noFail"`
+	Values      json.RawMessage   `json:"values"`
+	ValuesBatch []json.RawMessage `json:"valuesBatch"`
 }
 
 type request struct {
 	Credentials *credentials  `json:"credentials"`
 	Transaction []requestItem `json:"transaction"`
+}
+
+type requestParams struct {
+	UnmarshalledDict  map[string]any
+	UnmarshalledArray []any
 }
 
 // These are for generating the response

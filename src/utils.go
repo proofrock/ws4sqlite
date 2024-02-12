@@ -20,11 +20,13 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/iancoleman/orderedmap"
 	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -76,6 +78,39 @@ func vals2nameds(vals map[string]interface{}) []interface{} {
 		nameds = append(nameds, sql.Named(key, val))
 	}
 	return nameds
+}
+
+func isEmptyRaw(raw json.RawMessage) bool {
+	// the last check is for `null`
+	return raw == nil || len(raw) == 0 || slices.Equal(raw, []byte{110, 117, 108, 108})
+}
+
+func raw2params(raw json.RawMessage) (*requestParams, error) {
+	params := requestParams{}
+	if isEmptyRaw(raw) {
+		params.UnmarshalledArray = []any{}
+		return &params, nil
+	}
+	switch raw[0] {
+	case '[':
+		values := make([]any, 0)
+		err := json.Unmarshal(raw, &values)
+		if err != nil {
+			return nil, err
+		}
+		params.UnmarshalledArray = values
+	case '{':
+		values := make(map[string]interface{})
+		err := json.Unmarshal(raw, &values)
+		if err != nil {
+			return nil, err
+		}
+		params.UnmarshalledDict = values
+	default:
+		return nil, errors.New("values should be an array or an object")
+	}
+
+	return &params, nil
 }
 
 // Processes paths with home (tilde) expansion. Fails if not valid
