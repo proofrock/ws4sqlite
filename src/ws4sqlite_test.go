@@ -389,13 +389,16 @@ func TestResultSetOrder(t *testing.T) {
 	req := request{
 		Transaction: []requestItem{
 			{
-				Query: "CREATE TABLE table_with_many_columns (d INT, c INT, b INT, a INT)",
+				Statement: "CREATE TABLE table_with_many_columns (d INT, c INT, b INT, a INT)",
 			},
 			{
-				Query: "INSERT INTO table_with_many_columns VALUES (4, 3, 2, 1)",
+				Statement: "INSERT INTO table_with_many_columns VALUES (4, 3, 2, 1)",
 			},
 			{
 				Query: "SELECT * FROM table_with_many_columns",
+			},
+			{
+				Statement: "DROP TABLE table_with_many_columns",
 			},
 		},
 	}
@@ -408,7 +411,8 @@ func TestResultSetOrder(t *testing.T) {
 
 	if !res.Results[0].Success ||
 		!res.Results[1].Success ||
-		!res.Results[2].Success {
+		!res.Results[2].Success ||
+		!res.Results[3].Success {
 		t.Error("did not succeed")
 		return
 	}
