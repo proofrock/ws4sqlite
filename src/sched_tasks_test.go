@@ -18,11 +18,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/robfig/cron/v3"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 // The post-0.14 "scheduledTasks" structure is only actually tested in TestAtStartupMultiple, but the contents of the
@@ -236,7 +237,7 @@ func TestSchedTasksWithStatement(t *testing.T) {
 		t.Error("did not succeed, but should have")
 	}
 
-	if fmt.Sprint(getDefault[float64](res.Results[0].ResultSet[0], "num")) != "17" {
+	if fmt.Sprint(res.Results[0].ResultSet[0].(map[string]interface{})["num"]) != "17" {
 		t.Error("scheduled statement probably didn't execute")
 	}
 }

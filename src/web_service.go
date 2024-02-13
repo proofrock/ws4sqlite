@@ -57,14 +57,14 @@ func reportError(err error, code int, reqIdx int, noFail bool, results []respons
 	if !noFail {
 		panic(newWSError(reqIdx, code, err.Error()))
 	}
-	results[reqIdx] = responseItem{false, nil, nil, nil, capitalize(err.Error())}
+	results[reqIdx] = responseItem{false, nil, nil, nil, nil, capitalize(err.Error())}
 }
 
 // Processes a query, and returns a suitable responseItem
 //
 // This method is needed to execute properly the defers.
-func processWithResultSet(tx *sql.Tx, query string, params requestParams) (*responseItem, error) {
-	resultSet := make([]orderedmap.OrderedMap, 0)
+func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params requestParams) (*responseItem, error) {
+	resultSet := make([]interface{}, 0)
 
 	rows := (*sql.Rows)(nil)
 	err := (error)(nil)
@@ -91,19 +91,29 @@ func processWithResultSet(tx *sql.Tx, query string, params requestParams) (*resp
 			return nil, err
 		}
 
-		toAdd := orderedmap.New()
-		for i := range values {
-			toAdd.Set(fields[i], values[i])
-		}
+		if isListResultSet {
+			// List-style result set
+			toAdd := make([]interface{}, 0)
+			for i := range values {
+				toAdd = append(toAdd, values[i])
+			}
+			resultSet = append(resultSet, toAdd)
+		} else {
+			// Map-style result set
+			toAdd := orderedmap.New()
+			for i := range values {
+				toAdd.Set(fields[i], values[i])
+			}
 
-		resultSet = append(resultSet, *toAdd)
+			resultSet = append(resultSet, *toAdd)
+		}
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return &responseItem{true, nil, nil, resultSet, ""}, nil
+	return &responseItem{true, nil, nil, fields, resultSet, ""}, nil
 }
 
 // Process a single statement, and returns a suitable responseItem
@@ -126,7 +136,7 @@ func processForExec(tx *sql.Tx, statement string, params requestParams) (*respon
 		return nil, err
 	}
 
-	return &responseItem{true, &rowsUpdated, nil, nil, ""}, nil
+	return &responseItem{true, &rowsUpdated, nil, nil, nil, ""}, nil
 }
 
 // Process a batch statement, and returns a suitable responseItem.
@@ -161,7 +171,7 @@ func processForExecBatch(tx *sql.Tx, q string, paramsBatch []requestParams) (*re
 		rowsUpdatedBatch = append(rowsUpdatedBatch, rowsUpdated)
 	}
 
-	return &responseItem{true, nil, rowsUpdatedBatch, nil, ""}, nil
+	return &responseItem{true, nil, rowsUpdatedBatch, nil, nil, ""}, nil
 }
 
 func ckSQL(sql string) string {
@@ -186,6 +196,8 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 		if err := c.BodyParser(&body); err != nil {
 			return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
 		}
+
+		isListResultSet := body.ResultFormat != nil && strings.EqualFold(*body.ResultFormat, "list")
 
 		db, found := dbs[databaseId]
 		if !found {
@@ -309,7 +321,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				if hasResultSet {
 					// Query
 					// Externalized in a func so that defer rows.Close() actually runs
-					retWR, err := processWithResultSet(tx, sqll, *params)
+					retWR, err := processWithResultSet(tx, sqll, isListResultSet, *params)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue

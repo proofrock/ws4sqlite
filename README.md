@@ -19,8 +19,9 @@ ws4sqlite --db mydatabase.db
 
 It's possible to make a POST call to `http://localhost:12321/mydatabase`, e.g. with the following body:
 
-```json
+```json5
 {
+    "resultFormat": "map", // "map" or "list"; if omitted, "map"
     "transaction": [
         {
             "statement": "INSERT INTO TEST_TABLE (ID, VAL, VAL2) VALUES (:id, :val, :val2)",
@@ -63,6 +64,8 @@ Obtaining an answer of
 - [**In-memory DBs**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#path)  are supported;
 - Serving of [**multiple databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) in the same server instance;
 - [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple value sets for a single statement;
+- **Parameters** may be passed to statements positionally (lists) or by name (maps);
+- **Results** of queries may be returned as key-value maps, or as values lists;
 - All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);
 - For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sqlite/documentation/errors#managed-errors) to that query;
 - "[**Stored Statements**](https://germ.gitbook.io/ws4sqlite/documentation/stored-statements)": define SQL in the server, and call it from the client;

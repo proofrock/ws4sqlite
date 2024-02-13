@@ -18,12 +18,13 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/gofiber/fiber/v2"
 	"os"
 	"slices"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 
 	mllog "github.com/proofrock/go-mylittlelogger"
 )
@@ -221,7 +222,7 @@ func TestTx(t *testing.T) {
 		t.Error("req 1 inconsistent")
 	}
 
-	if !res.Results[2].Success || getDefault[string](res.Results[2].ResultSet[0], "VAL") != "ONE" {
+	if !res.Results[2].Success || res.Results[2].ResultSet[0].(map[string]interface{})["VAL"] != "ONE" {
 		t.Error("req 2 inconsistent")
 	}
 
@@ -364,7 +365,7 @@ func TestConcurrent(t *testing.T) {
 				t.Error("req 1 inconsistent")
 			}
 
-			if !res.Results[2].Success || getDefault[string](res.Results[2].ResultSet[0], "VAL") != "ONE" {
+			if !res.Results[2].Success || res.Results[2].ResultSet[0].(map[string]interface{})["VAL"] != "ONE" {
 				t.Error("req 2 inconsistent")
 			}
 
@@ -417,10 +418,11 @@ func TestResultSetOrder(t *testing.T) {
 		return
 	}
 
-	queryResult := res.Results[2].ResultSet[0]
+	queryResult := res.Results[2].ResultSet[0].(map[string]interface{})
+	queryResultHeaders := res.Results[2].ResultHeaders
 	expectedKeys := []string{"d", "c", "b", "a"}
 	if !slices.Equal(
-		queryResult.Keys(),
+		queryResultHeaders,
 		expectedKeys,
 	) {
 		t.Error("should have the right order")
@@ -429,11 +431,69 @@ func TestResultSetOrder(t *testing.T) {
 
 	expectedValues := []float64{4, 3, 2, 1}
 	for i, key := range expectedKeys {
-		value, ok := queryResult.Get(key)
+		value, ok := queryResult[key]
 		if !ok {
 			t.Error("unreachable code")
 			return
 		}
+		expectedValue := expectedValues[i]
+		if value != expectedValue {
+			t.Error("wrong value")
+			return
+		}
+	}
+}
+
+var listResults string = "list"
+
+func TestListResultSet(t *testing.T) {
+	// See this issue for more context: https://github.com/proofrock/sqliterg/issues/5
+	req := request{
+		ResultFormat: &listResults,
+		Transaction: []requestItem{
+			{
+				Statement: "CREATE TABLE table_with_many_columns (d INT, c INT, b INT, a INT)",
+			},
+			{
+				Statement: "INSERT INTO table_with_many_columns VALUES (4, 3, 2, 1)",
+			},
+			{
+				Query: "SELECT * FROM table_with_many_columns",
+			},
+			{
+				Statement: "DROP TABLE table_with_many_columns",
+			},
+		},
+	}
+	code, _, res := call("test", req, t)
+
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	if !res.Results[0].Success ||
+		!res.Results[1].Success ||
+		!res.Results[2].Success ||
+		!res.Results[3].Success {
+		t.Error("did not succeed")
+		return
+	}
+
+	queryResult := res.Results[2].ResultSet[0].([]interface{})
+	queryResultHeaders := res.Results[2].ResultHeaders
+	expectedKeys := []string{"d", "c", "b", "a"}
+	if !slices.Equal(
+		queryResultHeaders,
+		expectedKeys,
+	) {
+		t.Error("should have the right order")
+		return
+	}
+
+	expectedValues := []float64{4, 3, 2, 1}
+	for i, key := range expectedKeys {
+		value := queryResult[slices.Index(queryResultHeaders, key)]
 		expectedValue := expectedValues[i]
 		if value != expectedValue {
 			t.Error("wrong value")
@@ -550,7 +610,7 @@ func TestOkRO(t *testing.T) {
 		return
 	}
 
-	if !res.Results[0].Success || getDefault[string](res.Results[0].ResultSet[3], "VAL") != "FOUR" {
+	if !res.Results[0].Success || res.Results[0].ResultSet[3].(map[string]interface{})["VAL"] != "FOUR" {
 		t.Error("req is inconsistent")
 	}
 }
@@ -577,7 +637,7 @@ func TestConcurrentRO(t *testing.T) {
 				return
 			}
 
-			if !res.Results[0].Success || getDefault[string](res.Results[0].ResultSet[3], "VAL") != "FOUR" {
+			if !res.Results[0].Success || res.Results[0].ResultSet[3].(map[string]interface{})["VAL"] != "FOUR" {
 				t.Error("req is inconsistent")
 			}
 		}(t)
@@ -1312,7 +1372,7 @@ func TestUnicode(t *testing.T) {
 	if code != 200 {
 		t.Error("SELECT failed", body)
 	}
-	if getDefault[string](res.Results[0].ResultSet[0], "TXT") != "世界" {
+	if res.Results[0].ResultSet[0].(map[string]interface{})["TXT"] != "世界" {
 		t.Error("Unicode extraction failed", body)
 	}
 
