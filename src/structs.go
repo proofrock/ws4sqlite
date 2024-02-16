@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+
+	"github.com/iancoleman/orderedmap"
 )
 
 // This is the ws4sqlite error type
@@ -127,12 +129,13 @@ type requestParams struct {
 // These are for generating the response
 
 type responseItem struct {
-	Success          bool          `json:"success"`
-	RowsUpdated      *int64        `json:"rowsUpdated,omitempty"`
-	RowsUpdatedBatch []int64       `json:"rowsUpdatedBatch,omitempty"`
-	ResultHeaders    []string      `json:"resultHeaders,omitempty"`
-	ResultSet        []interface{} `json:"resultSet,omitnil"` // omitnil is used by jettison
-	Error            string        `json:"error,omitempty"`
+	Success          bool                    `json:"success"`
+	RowsUpdated      *int64                  `json:"rowsUpdated,omitempty"`
+	RowsUpdatedBatch []int64                 `json:"rowsUpdatedBatch,omitempty"`
+	ResultHeaders    []string                `json:"resultHeaders,omitempty"`
+	ResultSet        []orderedmap.OrderedMap `json:"resultSet,omitnil"`     // omitnil is used by jettison
+	ResultSetList    [][]interface{}         `json:"resultSetList,omitnil"` // omitnil is used by jettison
+	Error            string                  `json:"error,omitempty"`
 }
 
 type response struct {

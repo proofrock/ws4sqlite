@@ -57,14 +57,15 @@ func reportError(err error, code int, reqIdx int, noFail bool, results []respons
 	if !noFail {
 		panic(newWSError(reqIdx, code, err.Error()))
 	}
-	results[reqIdx] = responseItem{false, nil, nil, nil, nil, capitalize(err.Error())}
+	results[reqIdx] = responseItem{false, nil, nil, nil, nil, nil, capitalize(err.Error())}
 }
 
 // Processes a query, and returns a suitable responseItem
 //
 // This method is needed to execute properly the defers.
 func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params requestParams) (*responseItem, error) {
-	resultSet := make([]interface{}, 0)
+	resultSet := make([]orderedmap.OrderedMap, 0)
+	resultSetList := make([][]interface{}, 0)
 
 	rows := (*sql.Rows)(nil)
 	err := (error)(nil)
@@ -80,10 +81,10 @@ func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params
 	}
 	defer rows.Close()
 
-	fields, _ := rows.Columns() // I can ignore the error, rows aren't closed
+	headers, _ := rows.Columns() // I can ignore the error, rows aren't closed
 	for rows.Next() {
-		values := make([]interface{}, len(fields)) // values of the various fields
-		scans := make([]interface{}, len(fields))  // pointers to the values, to pass to Scan()
+		values := make([]interface{}, len(headers)) // values of the various fields
+		scans := make([]interface{}, len(headers))  // pointers to the values, to pass to Scan()
 		for i := range values {
 			scans[i] = &values[i]
 		}
@@ -93,16 +94,14 @@ func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params
 
 		if isListResultSet {
 			// List-style result set
-			toAdd := make([]interface{}, 0)
-			for i := range values {
-				toAdd = append(toAdd, values[i])
-			}
-			resultSet = append(resultSet, toAdd)
+
+			resultSetList = append(resultSetList, values)
 		} else {
 			// Map-style result set
+
 			toAdd := orderedmap.New()
 			for i := range values {
-				toAdd.Set(fields[i], values[i])
+				toAdd.Set(headers[i], values[i])
 			}
 
 			resultSet = append(resultSet, *toAdd)
@@ -113,7 +112,10 @@ func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params
 		return nil, err
 	}
 
-	return &responseItem{true, nil, nil, fields, resultSet, ""}, nil
+	if isListResultSet {
+		return &responseItem{true, nil, nil, headers, nil, resultSetList, ""}, nil
+	}
+	return &responseItem{true, nil, nil, headers, resultSet, nil, ""}, nil
 }
 
 // Process a single statement, and returns a suitable responseItem
@@ -136,7 +138,7 @@ func processForExec(tx *sql.Tx, statement string, params requestParams) (*respon
 		return nil, err
 	}
 
-	return &responseItem{true, &rowsUpdated, nil, nil, nil, ""}, nil
+	return &responseItem{true, &rowsUpdated, nil, nil, nil, nil, ""}, nil
 }
 
 // Process a batch statement, and returns a suitable responseItem.
@@ -171,7 +173,7 @@ func processForExecBatch(tx *sql.Tx, q string, paramsBatch []requestParams) (*re
 		rowsUpdatedBatch = append(rowsUpdatedBatch, rowsUpdated)
 	}
 
-	return &responseItem{true, nil, rowsUpdatedBatch, nil, nil, ""}, nil
+	return &responseItem{true, nil, rowsUpdatedBatch, nil, nil, nil, ""}, nil
 }
 
 func ckSQL(sql string) string {

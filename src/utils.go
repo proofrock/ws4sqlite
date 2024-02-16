@@ -21,13 +21,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/iancoleman/orderedmap"
-	"github.com/mitchellh/go-homedir"
-	mllog "github.com/proofrock/go-mylittlelogger"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"github.com/iancoleman/orderedmap"
+	"github.com/mitchellh/go-homedir"
+	mllog "github.com/proofrock/go-mylittlelogger"
 )
 
 // Uppercases (?) the first letter of a string
@@ -57,20 +58,6 @@ func dirExists(dirname string) bool {
 	return info.IsDir()
 }
 
-// Maps the raw JSON messages to a proper map, to manage unstructured JSON parsing;
-// see https://noamt.medium.com/using-gos-json-rawmessage-a2371a1c11b7
-func raw2vals(raw map[string]json.RawMessage) (map[string]interface{}, error) {
-	ret := make(map[string]interface{})
-	for key, rawVal := range raw {
-		var val interface{}
-		if err := json.Unmarshal(rawVal, &val); err != nil {
-			return nil, err
-		}
-		ret[key] = val
-	}
-	return ret, nil
-}
-
 // Maps named parameters to the proper sql type, needed to use named params
 func vals2nameds(vals map[string]interface{}) []interface{} {
 	var nameds []interface{}
@@ -82,7 +69,7 @@ func vals2nameds(vals map[string]interface{}) []interface{} {
 
 func isEmptyRaw(raw json.RawMessage) bool {
 	// the last check is for `null`
-	return raw == nil || len(raw) == 0 || slices.Equal(raw, []byte{110, 117, 108, 108})
+	return len(raw) == 0 || slices.Equal(raw, []byte{110, 117, 108, 108})
 }
 
 func raw2params(raw json.RawMessage) (*requestParams, error) {

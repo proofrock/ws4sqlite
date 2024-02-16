@@ -78,7 +78,7 @@ func callBA(databaseId string, req request, user, password string, t *testing.T)
 
 	code, bodyBytes, errs := post.Bytes()
 
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		t.Error(errs[0])
 	}
 
@@ -222,7 +222,7 @@ func TestTx(t *testing.T) {
 		t.Error("req 1 inconsistent")
 	}
 
-	if !res.Results[2].Success || res.Results[2].ResultSet[0].(map[string]interface{})["VAL"] != "ONE" {
+	if !res.Results[2].Success || getDefault[string](res.Results[2].ResultSet[0], "VAL") != "ONE" {
 		t.Error("req 2 inconsistent")
 	}
 
@@ -365,7 +365,7 @@ func TestConcurrent(t *testing.T) {
 				t.Error("req 1 inconsistent")
 			}
 
-			if !res.Results[2].Success || res.Results[2].ResultSet[0].(map[string]interface{})["VAL"] != "ONE" {
+			if !res.Results[2].Success || getDefault[string](res.Results[2].ResultSet[0], "VAL") != "ONE" {
 				t.Error("req 2 inconsistent")
 			}
 
@@ -418,11 +418,10 @@ func TestResultSetOrder(t *testing.T) {
 		return
 	}
 
-	queryResult := res.Results[2].ResultSet[0].(map[string]interface{})
-	queryResultHeaders := res.Results[2].ResultHeaders
+	queryResult := res.Results[2].ResultSet[0]
 	expectedKeys := []string{"d", "c", "b", "a"}
 	if !slices.Equal(
-		queryResultHeaders,
+		queryResult.Keys(),
 		expectedKeys,
 	) {
 		t.Error("should have the right order")
@@ -431,7 +430,7 @@ func TestResultSetOrder(t *testing.T) {
 
 	expectedValues := []float64{4, 3, 2, 1}
 	for i, key := range expectedKeys {
-		value, ok := queryResult[key]
+		value, ok := queryResult.Get(key)
 		if !ok {
 			t.Error("unreachable code")
 			return
@@ -480,7 +479,7 @@ func TestListResultSet(t *testing.T) {
 		return
 	}
 
-	queryResult := res.Results[2].ResultSet[0].([]interface{})
+	queryResult := res.Results[2].ResultSetList[0]
 	queryResultHeaders := res.Results[2].ResultHeaders
 	expectedKeys := []string{"d", "c", "b", "a"}
 	if !slices.Equal(
@@ -610,7 +609,7 @@ func TestOkRO(t *testing.T) {
 		return
 	}
 
-	if !res.Results[0].Success || res.Results[0].ResultSet[3].(map[string]interface{})["VAL"] != "FOUR" {
+	if !res.Results[0].Success || getDefault[string](res.Results[0].ResultSet[3], "VAL") != "FOUR" {
 		t.Error("req is inconsistent")
 	}
 }
@@ -637,7 +636,7 @@ func TestConcurrentRO(t *testing.T) {
 				return
 			}
 
-			if !res.Results[0].Success || res.Results[0].ResultSet[3].(map[string]interface{})["VAL"] != "FOUR" {
+			if !res.Results[0].Success || getDefault[string](res.Results[0].ResultSet[3], "VAL") != "FOUR" {
 				t.Error("req is inconsistent")
 			}
 		}(t)
@@ -1372,7 +1371,7 @@ func TestUnicode(t *testing.T) {
 	if code != 200 {
 		t.Error("SELECT failed", body)
 	}
-	if res.Results[0].ResultSet[0].(map[string]interface{})["TXT"] != "世界" {
+	if getDefault[string](res.Results[0].ResultSet[0], "TXT") != "世界" {
 		t.Error("Unicode extraction failed", body)
 	}
 
@@ -1499,7 +1498,7 @@ func TestFileServer(t *testing.T) {
 
 	code, _, errs := get.String()
 
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		t.Error(errs[0])
 	}
 
@@ -1526,7 +1525,7 @@ func TestFileServerKO(t *testing.T) {
 
 	code, _, errs := get.String()
 
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		t.Error(errs[0])
 	}
 
@@ -1553,7 +1552,7 @@ func TestFileServerWithOverlap(t *testing.T) {
 
 	code, _, errs := get.String()
 
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		t.Error(errs[0])
 	}
 
