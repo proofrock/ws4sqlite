@@ -1,6 +1,6 @@
 module github.com/proofrock/ws4sqlite
 
-go 1.22
+go 1.20
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.0
