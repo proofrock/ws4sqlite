@@ -20,6 +20,7 @@ ws4sqlite --db mydatabase.db
 It's possible to make a POST call to `http://localhost:12321/mydatabase`, e.g. with the following body:
 
 ```json5
+// Set Content-type: application/json
 {
     "resultFormat": "map", // "map" or "list"; if omitted, "map"
     "transaction": [
