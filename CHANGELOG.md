@@ -1,3 +1,12 @@
+## v0.16.0
+*2024-02-17, Venice*
+
+- #38: In a map resultset, keys are now in the same order as in the query
+- #41: Query parameters as arrays
+- #42: Remove encryption framework (**breaking change**)
+- #43: Option to return results as a list, instead of a map
+- Go 1.22 and SQLite 3.45.1
+
 ## v0.15.3
 *2024-02-09, Venice*
 
