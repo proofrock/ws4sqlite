@@ -1,8 +1,6 @@
 # 🌱 ws4sqlite
 
-> *This project has now a reimplementarion in Rust, called `sqliterg`, at [**sqliterg.dev**](https://docs.sqliterg.dev). It is not a 1:1 rewrite, but I tried to fix some concepts that I feel I got wrong here; plus it's smaller, (even) faster, (even) less memory-hungry and it can be built with an embedded sqlite or using the one on the system. You should feel at home with it, anyway a [migration guide is here](https://docs.sqliterg.dev/features/migrating-from-ws4sqlite).*
-
-> *`ws4sqlite` is **not really** deprecated, it will continue to receive libraries updates (about monthly), but probably not new features.*
+> I recently started a [discussion](https://github.com/proofrock/ws4sqlite/discussions/44) over the future direction for this project. Take a look, and chip in if you want!
 
 **`ws4sqlite`** is a server application that, applied to one or more sqlite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
 
