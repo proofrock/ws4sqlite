@@ -16,6 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.0'
+
       - name: Modify ws4sqlite.exe
         run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sqlite.go
         working-directory: src/
@@ -30,6 +34,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.0'
 
       - name: Modify ws4sqlite.exe
         run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sqlite.go
