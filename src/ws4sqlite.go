@@ -33,13 +33,13 @@ import (
 	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	_ "modernc.org/sqlite"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const version = "v0.0.0"
 
 func getSQLiteVersion() (string, error) {
-	dbObj, err := sql.Open("sqlite", ":memory:")
+	dbObj, err := sql.Open("sqlite3", ":memory:")
 	defer dbObj.Close()
 	if err != nil {
 		return "", err
@@ -150,10 +150,10 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		var options []string
 		if database.ReadOnly {
 			// Several ways to be read-only...
-			options = append(options, "_pragma=query_only(true)")
+			options = append(options, "mode=ro", "immutable=1", "_query_only=1")
 		}
 		if !database.DisableWALMode {
-			options = append(options, "_pragma=journal_mode(WAL)")
+			options = append(options, "_journal=WAL")
 		}
 		if len(options) > 0 {
 			connString = connString + "?" + strings.Join(options, "&")
@@ -208,7 +208,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		// Opens the DB and adds it to the structure
-		dbObj, err := sql.Open("sqlite", connString)
+		dbObj, err := sql.Open("sqlite3", connString)
 		if err != nil {
 			mllog.Fatal(err.Error())
 		}
@@ -243,6 +243,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		// Parsing of the scheduled tasks
+		// FIXME Fail if readonly?
 		if database.Maintenance != nil && len(database.ScheduledTasks) > 0 {
 			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", database.Id)
 		} else if database.Maintenance != nil {
