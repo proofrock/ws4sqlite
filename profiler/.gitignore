@@ -1,0 +1,3 @@
+environment/*db*
+*.class
+ws4sqlite*

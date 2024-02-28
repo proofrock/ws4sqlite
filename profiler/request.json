@@ -1,0 +1,66 @@
+{
+    "credentials": {
+        "user": "myUser",
+        "password": "ciao"
+    },
+    "transaction": [
+        {
+            "statement": "DELETE FROM TBL"
+        },
+        {
+            "query": "SELECT * FROM TBL"
+        },
+        {
+            "statement": "INSERT INTO TBL (ID, VAL) VALUES (:id, :val)",
+            "values": {
+                "id": 0,
+                "val": "zero"
+            }
+        },
+        {
+            "statement": "INSERT INTO TBL (ID, VAL) VALUES (:id, :val)",
+            "valuesBatch": [
+                {
+                    "id": 1,
+                    "val": "uno"
+                },
+                {
+                    "id": 2,
+                    "val": "due"
+                }
+            ]
+        },
+        {
+            "noFail": true,
+            "statement": "INSERT INTO TBL (ID, VAL) VALUES (:id, :val, 1)",
+            "valuesBatch": [
+                {
+                    "id": 1,
+                    "val": "uno"
+                },
+                {
+                    "id": 2,
+                    "val": "due"
+                }
+            ]
+        },
+        {
+            "statement": "INSERT INTO TBL (ID, VAL) VALUES (:id, :val)",
+            "valuesBatch": [
+                {
+                    "id": 3,
+                    "val": "tre"
+                }
+            ]
+        },
+        {
+            "query": "SELECT * FROM TBL WHERE ID=:id",
+            "values": {
+                "id": 1
+            }
+        },
+        {
+            "statement": "DELETE FROM TBL"
+        }
+    ]
+}

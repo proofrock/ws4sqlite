@@ -1,0 +1,9 @@
+auth:
+  mode: INLINE
+  byQuery: SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password
+corsOrigin: "*"
+initStatements:
+  - CREATE TABLE IF NOT EXISTS TBL (ID INT, VAL TEXT)
+  - CREATE TABLE IF NOT EXISTS AUTH (USER TEXT, PASS TEXT)
+  - DELETE FROM AUTH
+  - INSERT INTO AUTH VALUES ('myUser', 'ciao')
