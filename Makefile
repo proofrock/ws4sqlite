@@ -73,20 +73,20 @@ zxbuild:
 zxbuild-post:
 	mv github.com/proofrock/ bin
 	rm -rf github.com/
-	mv bin/ws4sqlite-windows-10.0-amd64.exe bin/ws4slite.exe
-	cd bin/ && zip -9 ws4sqlite-v0.0.0-win-x86_64.zip ws4slite.exe
-	rm bin/ws4slite.exe
-	mv bin/ws4sqlite-darwin-10.12-amd64 bin/ws4slite
-	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-darwin-x86_64.tar.gz"
-	mv bin/ws4sqlite-darwin-10.12-arm64 bin/ws4slite
-	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-darwin-arm64.tar.gz"
-	mv bin/ws4sqlite-linux-amd64 bin/ws4slite
-	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-linux-x86_64.tar.gz"
-	mv bin/ws4sqlite-linux-arm64 bin/ws4slite
-	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-linux-arm64.tar.gz"
-	mv bin/ws4sqlite-linux-arm-6 bin/ws4slite
-	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-linux-arm-v6.tar.gz"
-	rm bin/ws4slite
+	mv bin/ws4sqlite-windows-10.0-amd64.exe bin/ws4sqlite.exe
+	cd bin/ && zip -9 ws4sqlite-v0.0.0-win-x86_64.zip ws4sqlite.exe
+	rm bin/ws4sqlite.exe
+	mv bin/ws4sqlite-darwin-10.12-amd64 bin/ws4sqlite
+	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-darwin-x86_64.tar.gz"
+	mv bin/ws4sqlite-darwin-10.12-arm64 bin/ws4sqlite
+	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-darwin-arm64.tar.gz"
+	mv bin/ws4sqlite-linux-amd64 bin/ws4sqlite
+	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-linux-x86_64.tar.gz"
+	mv bin/ws4sqlite-linux-arm64 bin/ws4sqlite
+	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-linux-arm64.tar.gz"
+	mv bin/ws4sqlite-linux-arm-6 bin/ws4sqlite
+	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-linux-arm-v6.tar.gz"
+	rm bin/ws4sqlite
 
 docker:
 	docker buildx build -f Dockerfile --no-cache -t local_ws4sqlite:latest .
