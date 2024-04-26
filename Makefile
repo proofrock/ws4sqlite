@@ -61,6 +61,33 @@ zbuild-all:
 test:
 	cd src; go test -v -timeout 6m
 
+zxbuild-pre:
+	docker pull techknowlogick/xgo:latest
+	GOBIN=/home/devel/local/bin/ go install src.techknowlogick.com/xgo@latest
+
+zxbuild:
+	xgo -gcflags='-trimpath -a' -tags="netgo osusergo sqlite_omit_load_extension" -ldflags='-w -extldflags "-static"' --targets=linux/amd64,linux/arm-6,linux/arm64 ./src/
+	xgo -trimpath --targets=windows-10.0/amd64,darwin/* ./src/
+	echo "Run 'sudo chown -R $(whoami):$(whoami) \"github.com\" && make zxbuild-post'"
+
+zxbuild-post:
+	mv github.com/proofrock/ bin
+	rm -rf github.com/
+	mv bin/ws4sqlite-windows-10.0-amd64.exe bin/ws4slite.exe
+	cd bin/ && zip -9 ws4sqlite-v0.0.0-win-x86_64.zip ws4slite.exe
+	rm bin/ws4slite.exe
+	mv bin/ws4sqlite-darwin-10.12-amd64 bin/ws4slite
+	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-darwin-x86_64.tar.gz"
+	mv bin/ws4sqlite-darwin-10.12-arm64 bin/ws4slite
+	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-darwin-arm64.tar.gz"
+	mv bin/ws4sqlite-linux-amd64 bin/ws4slite
+	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-linux-x86_64.tar.gz"
+	mv bin/ws4sqlite-linux-arm64 bin/ws4slite
+	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-linux-arm64.tar.gz"
+	mv bin/ws4sqlite-linux-arm-6 bin/ws4slite
+	cd bin/ && bash -c "tar c ws4slite | gzip -9 > ws4sqlite-v0.0.0-linux-arm-v6.tar.gz"
+	rm bin/ws4slite
+
 docker:
 	docker buildx build -f Dockerfile --no-cache -t local_ws4sqlite:latest .
 
