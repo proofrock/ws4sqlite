@@ -89,31 +89,26 @@ zxbuild-post:
 	rm bin/ws4sqlite
 
 docker:
-	docker buildx build -f Dockerfile --no-cache -t local_ws4sqlite:latest .
+	docker buildx build -f Dockerfile.x86_64 --no-cache -t local_ws4sqlite:latest .
 
 docker-multiarch:
 	docker run --privileged --rm tonistiigi/binfmt --install arm64,arm
-	docker buildx build -f Dockerfile --no-cache -t germanorizzo/ws4sqlite:v0.0.0-amd64 .
-	docker buildx build -f Dockerfile --no-cache --platform linux/arm/v7 -t germanorizzo/ws4sqlite:v0.0.0-arm .
-	docker buildx build -f Dockerfile --no-cache --platform linux/arm64/v8 -t germanorizzo/ws4sqlite:v0.0.0-arm64 .
+	docker buildx build -f Dockerfile.x86_64 --no-cache -t germanorizzo/ws4sqlite:v0.0.0-amd64 .
+	docker buildx build -f Dockerfile.arm64 --no-cache --platform linux/arm64/v8 -t germanorizzo/ws4sqlite:v0.0.0-arm64 .
 
 docker-publish:
 	make docker-multiarch
 	docker push germanorizzo/ws4sqlite:v0.0.0-amd64
-	docker push germanorizzo/ws4sqlite:v0.0.0-arm
 	docker push germanorizzo/ws4sqlite:v0.0.0-arm64
-	docker manifest create -a germanorizzo/ws4sqlite:v0.0.0 germanorizzo/ws4sqlite:v0.0.0-amd64 germanorizzo/ws4sqlite:v0.0.0-arm germanorizzo/ws4sqlite:v0.0.0-arm64
+	docker manifest create -a germanorizzo/ws4sqlite:v0.0.0 germanorizzo/ws4sqlite:v0.0.0-amd64 germanorizzo/ws4sqlite:v0.0.0-arm64
 	docker manifest push germanorizzo/ws4sqlite:v0.0.0
 	- docker manifest rm germanorizzo/ws4sqlite:latest
-	docker manifest create germanorizzo/ws4sqlite:latest germanorizzo/ws4sqlite:v0.0.0-amd64 germanorizzo/ws4sqlite:v0.0.0-arm germanorizzo/ws4sqlite:v0.0.0-arm64
+	docker manifest create germanorizzo/ws4sqlite:latest germanorizzo/ws4sqlite:v0.0.0-amd64 germanorizzo/ws4sqlite:v0.0.0-arm64
 	docker manifest push germanorizzo/ws4sqlite:latest
 
 docker-devel:
-	docker buildx build -f Dockerfile --no-cache -t germanorizzo/ws4sqlite:edge .
+	docker buildx build -f Dockerfile.x86_64 --no-cache -t germanorizzo/ws4sqlite:edge .
 	docker push germanorizzo/ws4sqlite:edge
-
-docker-test-and-zbuild-all:
-	docker buildx build -f Dockerfile.binaries --target export -t tmp_binaries_build . --output bin
 
 docker-cleanup:
 	docker builder prune -af

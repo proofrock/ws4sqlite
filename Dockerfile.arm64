@@ -1,0 +1,8 @@
+FROM gcr.io/distroless/static-debian11
+
+ADD bin/ws4sqlite-*-linux-arm64.tar.gz /
+
+EXPOSE 12321
+VOLUME /data
+
+ENTRYPOINT ["/ws4sqlite"]
