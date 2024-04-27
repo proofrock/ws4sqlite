@@ -1,4 +1,4 @@
-module github.com/proofrock/ws4sqlite
+module github.com/proofrock/ws4sql
 
 go 1.22
 

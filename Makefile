@@ -6,7 +6,7 @@ build-prepare:
 
 cleanup:
 	- rm -r bin
-	- rm src/ws4sqlite
+	- rm src/ws4sql
 
 upd-libraries:
 	cd src; go get -u
@@ -14,101 +14,65 @@ upd-libraries:
 
 build:
 	make build-prepare
-	cd src; CGO_ENABLED=0 go build -trimpath
-	mv src/ws4sqlite bin/
-
-build-nostatic:
-	make build-prepare
 	cd src; go build -trimpath
-	mv src/ws4sqlite bin/
+	mv src/ws4sql bin/
 
-zbuild-all:
+build-static:
 	make build-prepare
-	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-linux-amd64.tar.gz ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-linux-arm.tar.gz ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-linux-arm64.tar.gz ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-linux-riscv64.tar.gz ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=linux GOARCH=s390x go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-linux-s390x.tar.gz ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath
-	cd src; zip -9 ../bin/ws4sqlite-v0.0.0-darwin-amd64.zip ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath
-	cd src; zip -9 ../bin/ws4sqlite-v0.0.0-darwin-arm64.zip ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath
-	cd src; zip -9 ../bin/ws4sqlite-v0.0.0-win-amd64.zip ws4sqlite.exe
-	rm src/ws4sqlite.exe
-	cd src; CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -trimpath
-	cd src; zip -9 ../bin/ws4sqlite-v0.0.0-win-arm64.zip ws4sqlite.exe
-	rm src/ws4sqlite.exe
-	cd src; CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-freebsd-amd64.tar.gz ws4sqlite
-	rm src/ws4sqlite
-	cd src; CGO_ENABLED=0 GOOS=freebsd GOARCH=arm64 go build -trimpath
-	cd src; tar czf ../bin/ws4sqlite-v0.0.0-freebsd-arm64.tar.gz ws4sqlite
-	rm src/ws4sqlite
+	cd src; go build -trimpath -a -tags="netgo osusergo sqlite_omit_load_extension" -ldflags='-w -extldflags "-static"'
+	mv src/ws4sql bin/
 
 test:
 	cd src; go test -v -timeout 6m
 
-zxbuild-pre:
+dist-pre:
 	docker pull techknowlogick/xgo:latest
 	GOBIN=/home/devel/local/bin/ go install src.techknowlogick.com/xgo@latest
 
-zxbuild:
+dist:
 	xgo -gcflags='-trimpath -a' -tags="netgo osusergo sqlite_omit_load_extension" -ldflags='-w -extldflags "-static"' --targets=linux/amd64,linux/arm-6,linux/arm64 ./src/
 	xgo -trimpath --targets=windows-10.0/amd64,darwin/* ./src/
-	echo "Run 'sudo chown -R $(whoami):$(whoami) \"github.com\" && make zxbuild-post'"
+	echo "Run 'sudo chown -R $(whoami):$(whoami) \"github.com\" && make dist-post'"
 
-zxbuild-post:
+dist-post:
 	mv github.com/proofrock/ bin
 	rm -rf github.com/
-	mv bin/ws4sqlite-windows-10.0-amd64.exe bin/ws4sqlite.exe
-	cd bin/ && zip -9 ws4sqlite-v0.0.0-win-x86_64.zip ws4sqlite.exe
-	rm bin/ws4sqlite.exe
-	mv bin/ws4sqlite-darwin-10.12-amd64 bin/ws4sqlite
-	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-darwin-x86_64.tar.gz"
-	mv bin/ws4sqlite-darwin-10.12-arm64 bin/ws4sqlite
-	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-darwin-arm64.tar.gz"
-	mv bin/ws4sqlite-linux-amd64 bin/ws4sqlite
-	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-linux-x86_64.tar.gz"
-	mv bin/ws4sqlite-linux-arm64 bin/ws4sqlite
-	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-linux-arm64.tar.gz"
-	mv bin/ws4sqlite-linux-arm-6 bin/ws4sqlite
-	cd bin/ && bash -c "tar c ws4sqlite | gzip -9 > ws4sqlite-v0.0.0-linux-arm-v6.tar.gz"
-	rm bin/ws4sqlite
+	mv bin/ws4sql-windows-10.0-amd64.exe bin/ws4sql.exe
+	cd bin/ && zip -9 ws4sql-v0.17.0beta1-win-x86_64.zip ws4sql.exe
+	rm bin/ws4sql.exe
+	mv bin/ws4sql-darwin-10.12-amd64 bin/ws4sql
+	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-darwin-x86_64.tar.gz"
+	mv bin/ws4sql-darwin-10.12-arm64 bin/ws4sql
+	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-darwin-arm64.tar.gz"
+	mv bin/ws4sql-linux-amd64 bin/ws4sql
+	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-linux-x86_64.tar.gz"
+	mv bin/ws4sql-linux-arm64 bin/ws4sql
+	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-linux-arm64.tar.gz"
+	mv bin/ws4sql-linux-arm-6 bin/ws4sql
+	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-linux-arm-v6.tar.gz"
+	rm bin/ws4sql
 
 docker:
-	docker buildx build -f Dockerfile.x86_64 --no-cache -t local_ws4sqlite:latest .
+	docker buildx build -f Dockerfile.x86_64 --no-cache -t local_ws4sql:latest .
 
 docker-multiarch:
 	docker run --privileged --rm tonistiigi/binfmt --install arm64,arm
-	docker buildx build -f Dockerfile.x86_64 --no-cache -t germanorizzo/ws4sqlite:v0.0.0-amd64 .
-	docker buildx build -f Dockerfile.arm64 --no-cache --platform linux/arm64/v8 -t germanorizzo/ws4sqlite:v0.0.0-arm64 .
+	docker buildx build -f Dockerfile.x86_64 --no-cache -t germanorizzo/ws4sql:v0.17.0beta1-amd64 .
+	docker buildx build -f Dockerfile.arm64 --no-cache --platform linux/arm64/v8 -t germanorizzo/ws4sql:v0.17.0beta1-arm64 .
 
 docker-publish:
 	make docker-multiarch
-	docker push germanorizzo/ws4sqlite:v0.0.0-amd64
-	docker push germanorizzo/ws4sqlite:v0.0.0-arm64
-	docker manifest create -a germanorizzo/ws4sqlite:v0.0.0 germanorizzo/ws4sqlite:v0.0.0-amd64 germanorizzo/ws4sqlite:v0.0.0-arm64
-	docker manifest push germanorizzo/ws4sqlite:v0.0.0
-	- docker manifest rm germanorizzo/ws4sqlite:latest
-	docker manifest create germanorizzo/ws4sqlite:latest germanorizzo/ws4sqlite:v0.0.0-amd64 germanorizzo/ws4sqlite:v0.0.0-arm64
-	docker manifest push germanorizzo/ws4sqlite:latest
+	docker push germanorizzo/ws4sql:v0.17.0beta1-amd64
+	docker push germanorizzo/ws4sql:v0.17.0beta1-arm64
+	docker manifest create -a germanorizzo/ws4sql:v0.17.0beta1 germanorizzo/ws4sql:v0.17.0beta1-amd64 germanorizzo/ws4sql:v0.17.0beta1-arm64
+	docker manifest push germanorizzo/ws4sql:v0.17.0beta1
+	- docker manifest rm germanorizzo/ws4sql:latest
+	docker manifest create germanorizzo/ws4sql:latest germanorizzo/ws4sql:v0.17.0beta1-amd64 germanorizzo/ws4sql:v0.17.0beta1-arm64
+	docker manifest push germanorizzo/ws4sql:latest
 
 docker-devel:
-	docker buildx build -f Dockerfile.x86_64 --no-cache -t germanorizzo/ws4sqlite:edge .
-	docker push germanorizzo/ws4sqlite:edge
+	docker buildx build -f Dockerfile.x86_64 --no-cache -t germanorizzo/ws4sql:edge .
+	docker push germanorizzo/ws4sql:edge
 
 docker-cleanup:
 	docker builder prune -af

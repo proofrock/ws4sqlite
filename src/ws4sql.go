@@ -36,7 +36,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "v0.0.0"
+const version = "v0.17.0beta1"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite3", ":memory:")
@@ -57,7 +57,7 @@ func getSQLiteVersion() (string, error) {
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
-	header := fmt.Sprintf("ws4sqlite %s", version)
+	header := fmt.Sprintf("ws4sql %s", version)
 	sqliteVersion, err := getSQLiteVersion()
 	if err != nil {
 		mllog.StdOut(header)

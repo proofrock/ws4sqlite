@@ -1,2 +1,2 @@
 This file is used to test the serving of the same path both with the file server (as GET) and with the db (as POST).
-See ws4sqlite_test.go#TestFileServerWithOverlap
+See ws4sql_test.go#TestFileServerWithOverlap

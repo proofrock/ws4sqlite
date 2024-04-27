@@ -1,8 +1,8 @@
 FROM gcr.io/distroless/static-debian11
 
-ADD bin/ws4sqlite-*-linux-x86_64.tar.gz /
+ADD bin/ws4sql-*-linux-x86_64.tar.gz /
 
 EXPOSE 12321
 VOLUME /data
 
-ENTRYPOINT ["/ws4sqlite"]
+ENTRYPOINT ["/ws4sql"]

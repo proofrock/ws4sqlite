@@ -1,8 +1,8 @@
-# 🌱 ws4sqlite
+# 🌱 ws4sql
 
-> I recently started a [discussion](https://github.com/proofrock/ws4sqlite/discussions/44) over the future direction for this project. Take a look, and chip in if you want!
+> I recently started a [discussion](https://github.com/proofrock/ws4sql/discussions/44) over the future direction for this project. Take a look, and chip in if you want!
 
-**`ws4sqlite`** is a server application that, applied to one or more sqlite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
+**`ws4sql`** is a server application that, applied to one or more sqlite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
 
 Possible use cases are the ones where remote access to a sqlite db is useful/needed, for example a data layer for a remote application, possibly serverless or even called from a web page (*after security considerations* of course).
 
@@ -12,7 +12,7 @@ Client libraries are available, that will abstract the "raw" JSON-based communic
 As a quick example, after launching 
 
 ```bash
-ws4sqlite --db mydatabase.db
+ws4sql --db mydatabase.db
 ```
 
 It's possible to make a POST call to `http://localhost:12321/mydatabase`, e.g. with the following body:
@@ -54,31 +54,31 @@ Obtaining an answer of
 
 # Features
 
-[Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
+[Docs](https://germ.gitbook.io/ws4sql/), a [Tutorial](https://germ.gitbook.io/ws4sql/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
 - Aligned to [**SQLite 3.45.1**](https://sqlite.org/releaselog/3_45_1.html);
-- A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
-- HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
-- Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
-- [**In-memory DBs**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#path)  are supported;
-- Serving of [**multiple databases**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file) in the same server instance;
-- [**Batching**](https://germ.gitbook.io/ws4sqlite/documentation/requests#batch-parameter-values-for-a-statement) of multiple value sets for a single statement;
-- [**Parameters**](https://germ.gitbook.io/ws4sqlite/documentation/requests#parameter-values-for-the-query-statement) may be passed to statements positionally (lists) or by name (maps);
-- [**Results**](https://germ.gitbook.io/ws4sqlite/documentation/responses#list-format-for-resultsets) of queries may be returned as key-value maps, or as values lists;
-- All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sqlite/documentation/requests);
-- For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sqlite/documentation/errors#managed-errors) to that query;
-- "[**Stored Statements**](https://germ.gitbook.io/ws4sqlite/documentation/stored-statements)": define SQL in the server, and call it from the client;
-- [**CORS**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#corsorigin) mode, configurable per-db;
-- [**Scheduled tasks**](https://germ.gitbook.io/ws4sqlite/documentation/sched_tasks), cron-like and/or at startup, also configurable per-db;
+- A [**single executable file**](https://germ.gitbook.io/ws4sql/documentation/installation) (written in Go);
+- HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sql/client-libraries) for convenience;
+- Directly call `ws4sql` on a database (as above), many options available using a YAML companion file;
+- [**In-memory DBs**](https://germ.gitbook.io/ws4sql/documentation/configuration-file#path)  are supported;
+- Serving of [**multiple databases**](https://germ.gitbook.io/ws4sql/documentation/configuration-file) in the same server instance;
+- [**Batching**](https://germ.gitbook.io/ws4sql/documentation/requests#batch-parameter-values-for-a-statement) of multiple value sets for a single statement;
+- [**Parameters**](https://germ.gitbook.io/ws4sql/documentation/requests#parameter-values-for-the-query-statement) may be passed to statements positionally (lists) or by name (maps);
+- [**Results**](https://germ.gitbook.io/ws4sql/documentation/responses#list-format-for-resultsets) of queries may be returned as key-value maps, or as values lists;
+- All queries of a call are executed in a [**transaction**](https://germ.gitbook.io/ws4sql/documentation/requests);
+- For each query/statement, specify if a failure should rollback the whole transaction, or the failure is [**limited**](https://germ.gitbook.io/ws4sql/documentation/errors#managed-errors) to that query;
+- "[**Stored Statements**](https://germ.gitbook.io/ws4sql/documentation/stored-statements)": define SQL in the server, and call it from the client;
+- [**CORS**](https://germ.gitbook.io/ws4sql/documentation/configuration-file#corsorigin) mode, configurable per-db;
+- [**Scheduled tasks**](https://germ.gitbook.io/ws4sql/documentation/sched_tasks), cron-like and/or at startup, also configurable per-db;
 - Scheduled tasks can be: backup (with rotation), vacuum and/or a set of SQL statements;
-- Provide [**initialization statements**](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#initstatements) to execute when a DB is created;
-- [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sqlite/documentation/configuration-file#disablewalmode);
+- Provide [**initialization statements**](https://germ.gitbook.io/ws4sql/documentation/configuration-file#initstatements) to execute when a DB is created;
+- [**WAL**](https://sqlite.org/wal.html) mode enabled by default, can be [disabled](https://germ.gitbook.io/ws4sql/documentation/configuration-file#disablewalmode);
 - [**Quite fast**](features/performances.md)!
-- [**Embedded web server**](https://germ.gitbook.io/ws4sqlite/documentation/web-server) to directly serve web pages that can access ws4sqlite without CORS;
+- [**Embedded web server**](https://germ.gitbook.io/ws4sql/documentation/web-server) to directly serve web pages that can access ws4sql without CORS;
 - Compact codebase;
 - Comprehensive test suite (`make test`);
 - 6 os's/arch's directly supported;
-- [**Docker images**](https://germ.gitbook.io/ws4sqlite/documentation/installation/docker), for amd64, arm and arm64.
+- [**Docker images**](https://germ.gitbook.io/ws4sql/documentation/installation/docker), for amd64, arm and arm64.
 
 # Security Features
 

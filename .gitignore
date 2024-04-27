@@ -1,4 +1,4 @@
-src/ws4sqlite
+src/ws4sql
 bin/
 .vscode/
 .idea/

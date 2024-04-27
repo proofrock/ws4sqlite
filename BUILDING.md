@@ -1,55 +1,49 @@
-# How to build ws4sqlite
+# How to build ws4sql
 
 The build system uses `make`. There are two kinds of targets:
 
-- "direct" builds, that use go(lang) tooling to build a statically or dinamically linked binary or set of binaries;
-- docker-based builds, that build binaries or containers under a docker environment, using the "official" golang docker 
-  image as a base.
+- "direct" builds, that use go(lang) tooling and [xgo](https://github.com/techknowlogick/xgo) to build a statically or dinamically linked binary or set of binaries;
+- docker image builds, that build docker images.
 
-All binaries generated for distribution are statically linked.
-
-**N.B.**: the actual releases are performed with Github Actions, so they don't use these targets directly; they do use the same instructions however.
-
-Please also note that in `Makefile` and `ws4sqlite.go` the version is specified as `v0.0.0`, to be replaced by the Github Action's script. Replace it at your leisure.
+All linux binaries generated for distribution are statically linked. MacOS and Windows binaries are dynamically linked.
 
 ## Direct targets
 
 #### make build
 
-Builds a statically linked binary under the current architecture, in the `bin/` folder.
-
-#### make build-nostatic
-
 Builds a dinamically linked binary under the current architecture, in the `bin/` folder.
 
-#### make zbuild-all
+#### make build-static
 
-Builds statically linked binaries for all the supported OSs/architectures, also creating the distribution archives in
-the `bin/` folder.
+Builds a statically linked binary under the current architecture, in the `bin/` folder.
+
+#### make dist*:
+
+Builds binaries for the 6 supported OSs/architectures, also creating the distribution archives in
+the `bin/` folder. Uses [xgo](https://github.com/techknowlogick/xgo) for cross compiling.
+
+It's actually a three-stage process: the first time use `make dist-pre` to setup the environment;
+then `make dist` to build the binaries. Then you need to re-own the output dir; run the command
+outputted by the last `make dist`. Finally, do `make dist-post`.
 
 ## Docker targets
 
-In general, docker images are built in the debian-based official docker image; the generated binary is then distributed
-in a `distroless/static-debian11` image. The final size is about 20Mb.
+The docker files assume that the `make dist*` stuff described above was performed.
+
+Docker images are based on the `debian:stable-slim` official docker image.
 
 *NB: buildx must be installed/enabled*
-*NB2: the **current** sources will be copied to the docker context.*
-
-#### make docker-test-and-zbuild-all
-
-Builds the distribution archives for the supported OSs/architectures (see `zbuild-all`) under a docker environment, and
-copies them in the `bin/` folder.
 
 #### make docker
 
-Builds a docker image (called `local_ws4sqlite:latest`) in the current architecture.
+Builds a docker image (tagged `local_ws4sql:latest`) in the current architecture.
 
 #### make docker-multiarch
 
-Builds docker images for AMD64, ARMv7 and ARM64v8. The images are named like the official ones, i.e. 
-`germanorizzo/ws4sqlite:v0.xx.xx-xxx`.
+Builds docker images for AMD64 and ARM64v8. The images are named like the official ones, i.e. 
+`germanorizzo/ws4sql:v0.xx.xx-xxx`.
 
-#### make docker-multiarch
+#### make docker-publish
 #### make docker-devel
 
 Reserved, for publishing in Docker Hub.

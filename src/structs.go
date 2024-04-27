@@ -25,7 +25,7 @@ import (
 	"github.com/iancoleman/orderedmap"
 )
 
-// This is the ws4sqlite error type
+// This is the ws4sql error type
 
 type wsError struct {
 	RequestIdx int    `json:"reqIdx"`

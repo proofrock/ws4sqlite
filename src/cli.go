@@ -45,7 +45,7 @@ func (i *arrayFlags) Set(value string) error {
 // various fields, and generating the pointers to database, mutexes etc.
 func parseCLI() config {
 	// We don't use the "main" flag set because Parse() is not repeatable (for testing)
-	fs := flag.NewFlagSet("ws4sqlite", flag.ExitOnError)
+	fs := flag.NewFlagSet("ws4sql", flag.ExitOnError)
 
 	// cli parameters
 	var dbFiles arrayFlags
