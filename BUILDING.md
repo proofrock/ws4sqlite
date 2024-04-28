@@ -22,9 +22,9 @@ Builds a statically linked binary under the current architecture, in the `bin/` 
 Builds binaries for the 6 supported OSs/architectures, also creating the distribution archives in
 the `bin/` folder. Uses [xgo](https://github.com/techknowlogick/xgo) for cross compiling.
 
-It's actually a three-stage process: the first time use `make dist-pre` to setup the environment;
-then `make dist` to build the binaries. Then you need to re-own the output dir; run the command
-outputted by the last `make dist`. Finally, do `make dist-post`.
+It's actually a two-stage process: the first time use `make dist-pre` to setup the environment;
+then `make dist` to build the binaries and package them. Root password required, to re-own the
+files (xgo produces them as root).
 
 ## Docker targets
 

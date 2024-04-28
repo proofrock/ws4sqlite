@@ -32,18 +32,16 @@ dist-pre:
 dist:
 	xgo -gcflags='-trimpath -a' -tags="netgo osusergo sqlite_omit_load_extension" -ldflags='-w -extldflags "-static"' --targets=linux/amd64,linux/arm-6,linux/arm64 ./src/
 	xgo -trimpath --targets=windows-10.0/amd64,darwin/* ./src/
-	echo "Run 'sudo chown -R $(whoami):$(whoami) \"github.com\" && make dist-post'"
-
-dist-post:
+	sudo chown -R `stat -c "%U:%G" Makefile` "github.com"
 	mv github.com/proofrock/ bin
 	rm -rf github.com/
 	mv bin/ws4sql-windows-10.0-amd64.exe bin/ws4sql.exe
 	cd bin/ && zip -9 ws4sql-v0.17.0beta1-win-x86_64.zip ws4sql.exe
 	rm bin/ws4sql.exe
 	mv bin/ws4sql-darwin-10.12-amd64 bin/ws4sql
-	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-darwin-x86_64.tar.gz"
+	cd bin/ && zip -9 ws4sql-v0.17.0beta1-darwin-x86_64.zip ws4sql
 	mv bin/ws4sql-darwin-10.12-arm64 bin/ws4sql
-	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-darwin-arm64.tar.gz"
+	cd bin/ && zip -9 ws4sql-v0.17.0beta1-darwin-arm64.zip ws4sql
 	mv bin/ws4sql-linux-amd64 bin/ws4sql
 	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17.0beta1-linux-x86_64.tar.gz"
 	mv bin/ws4sql-linux-arm64 bin/ws4sql
