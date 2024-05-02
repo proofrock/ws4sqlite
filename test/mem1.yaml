@@ -1,3 +1,7 @@
+database:
+  type: SQLITE
+  inMemory: true
+  id: mem1
 auth:
   mode: INLINE
   byQuery: SELECT 1 FROM AUTH WHERE USER = :user AND PASSWORD = :password

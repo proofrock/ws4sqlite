@@ -28,7 +28,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/wI2L/jettison"
 
@@ -81,8 +80,6 @@ var app *fiber.App
 // Can be called multiple times, but the Fiber app must be
 // terminated (see the Shutdown method in the tests).
 func launch(cfg config, disableKeepAlive4Tests bool) {
-	var err error
-
 	if len(cfg.Databases) == 0 && cfg.ServeDir == nil {
 		mllog.Fatal("no database nor dir to serve specified")
 	}
@@ -119,67 +116,37 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	dbs = make(map[string]db)
 	for i := range cfg.Databases {
 		// beware: this variable is NOT modified in-place. Add a cfg.Databases[i] = database at the end, if need be
-		database := cfg.Databases[i]
+		database := ckConfig(cfg.Databases[i])
+		dbId := *database.DatabaseDef.Id
 
-		if database.Id == "" {
-			mllog.Fatalf("no id specified for db #%d.", i)
+		if _, ok := dbs[dbId]; ok {
+			mllog.Fatalf("id '%s' already specified.", dbId)
 		}
 
-		if _, ok := dbs[database.Id]; ok {
-			mllog.Fatalf("id '%s' already specified.", database.Id)
-		}
-
-		// FIXME check if this is enough to consider it in-memory
-		isMemory := strings.Contains(database.Path, ":memory:")
-
-		if database.Path == "" {
-			mllog.Fatalf("no path specified for db '%s'.", database.Id)
-		}
-
-		if !isMemory {
-			// Resolves '~'
-			if database.Path, err = homedir.Expand(database.Path); err != nil {
-				mllog.Fatal("in expanding db file path: ", err.Error())
-			}
-		}
-
-		// Is the database new? Later I'll have to create the InitStatements
-		toCreate := isMemory || !fileExists(database.Path)
-
-		connString := database.Path
+		connString := *database.DatabaseDef.Path
 		var options []string
-		if database.ReadOnly {
+		if database.DatabaseDef.ReadOnly {
 			// Several ways to be read-only...
 			options = append(options, "mode=ro", "immutable=1", "_query_only=1")
 		}
-		if !database.DisableWALMode {
+		if !database.DatabaseDef.DisableWALMode {
 			options = append(options, "_journal=WAL")
 		}
 		if len(options) > 0 {
 			connString = connString + "?" + strings.Join(options, "&")
 		}
 
-		mllog.StdOutf("- Serving database '%s' from %s", database.Id, connString)
+		mllog.StdOutf("  + Serving database '%s' from %s", dbId, connString)
 
-		if database.CompanionFilePath != "" {
-			mllog.StdOutf("  + Parsed companion config file: %s", database.CompanionFilePath)
-		} else {
-			mllog.StdOut("  + No valid config file specified, using defaults")
-		}
-
-		if database.ReadOnly && toCreate && len(database.InitStatements) > 0 {
-			mllog.Fatalf("'%s': a new db cannot be read only and have init statement", database.Id)
-		}
-
-		if !isMemory && toCreate {
+		if !*database.DatabaseDef.InMemory && database.ToCreate {
 			mllog.StdOut("  + File not present, it will be created")
 		}
 
-		if !database.DisableWALMode {
+		if !database.DatabaseDef.DisableWALMode {
 			mllog.StdOut("  + Using WAL")
 		}
 
-		if database.ReadOnly {
+		if database.DatabaseDef.ReadOnly {
 			mllog.StdOut("  + Read only")
 		}
 
@@ -196,7 +163,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		for j := range database.StoredStatement {
 			ss := database.StoredStatement[j]
 			if ss.Id == "" || ss.Sql == "" {
-				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", j, database.Id)
+				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", j, dbId)
 			}
 			database.StoredStatsMap[ss.Id] = ss.Sql
 		}
@@ -204,7 +171,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		if len(database.StoredStatsMap) > 0 {
 			mllog.StdOutf("  + With %d stored statements", len(database.StoredStatsMap))
 		} else if database.UseOnlyStoredStatements {
-			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", database.Id)
+			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", dbId)
 		}
 
 		// Opens the DB and adds it to the structure
@@ -219,22 +186,22 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		// Executes a query on the DB, to create the file if not present
 		// and report general errors as soon as possible.
 		if _, err := dbObj.Exec("SELECT 1"); err != nil {
-			mllog.Fatalf("accessing the database '%s': %s", database.Id, err.Error())
+			mllog.Fatalf("accessing the database '%s': %s", dbId, err.Error())
 		}
 
 		// If this cycle will fail, I will have to clean up the created files
-		if toCreate && !isMemory {
-			filesToDelete = append(filesToDelete, database.Path)
+		if !*database.DatabaseDef.InMemory && database.ToCreate {
+			filesToDelete = append(filesToDelete, *database.DatabaseDef.Path)
 		}
 
-		if toCreate && len(database.InitStatements) > 0 {
-			performInitStatements(database, dbObj, isMemory)
+		if database.ToCreate && len(database.InitStatements) > 0 {
+			performInitStatements(database, dbObj, *database.DatabaseDef.InMemory)
 		}
 
 		database.Db = dbObj
 		database.DbConn, err = dbObj.Conn(context.Background())
 		if err != nil {
-			mllog.Fatalf("in opening connection to %s: %s", database.Id, err.Error())
+			mllog.Fatalf("in opening connection to %s: %s", dbId, err.Error())
 		}
 
 		// Parsing of the authentication
@@ -245,9 +212,9 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		// Parsing of the scheduled tasks
 		// FIXME Fail if readonly?
 		if database.Maintenance != nil && len(database.ScheduledTasks) > 0 {
-			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", database.Id)
+			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", dbId)
 		} else if database.Maintenance != nil {
-			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", database.Id)
+			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", dbId)
 			database.ScheduledTasks = []scheduledTask{*database.Maintenance}
 		}
 		if len(database.ScheduledTasks) > 0 {
@@ -258,7 +225,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			mllog.StdOutf("  + CORS Origin set to %s", database.CORSOrigin)
 		}
 
-		dbs[database.Id] = database
+		dbs[dbId] = database
 	}
 
 	if cfg.ServeDir != nil {
@@ -308,12 +275,12 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			}))
 		}
 
-		handlers = append(handlers, handler(db.Id))
+		handlers = append(handlers, handler(*db.DatabaseDef.Id))
 
-		app.Post(fmt.Sprintf("/%s", db.Id), handlers...)
+		app.Post(fmt.Sprintf("/%s", *db.DatabaseDef.Id), handlers...)
 
 		if db.CORSOrigin != "" {
-			app.Options(fmt.Sprintf("/%s", db.Id), handlers...)
+			app.Options(fmt.Sprintf("/%s", *db.DatabaseDef.Id), handlers...)
 		}
 	}
 
@@ -338,9 +305,9 @@ func performInitStatements(database db, dbObj *sql.DB, isMemory bool) {
 				// I fail and abort, so remove the leftover file
 				// TODO should I remove the wal files?
 				dbObj.Close()
-				os.Remove(database.Path)
+				os.Remove(*database.DatabaseDef.Path)
 			}
-			mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, database.Id, err.Error())
+			mllog.Fatalf("in init statement #%d for database '%s': %s", j+1, *database.DatabaseDef.Id, err.Error())
 		}
 	}
 	mllog.StdOutf("  + %d init statements performed", len(database.InitStatements))

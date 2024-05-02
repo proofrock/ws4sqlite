@@ -44,6 +44,19 @@ func cliTest(argv ...string) (config, string) {
 	return cfg, err
 }
 
+func TestQuickDb(t *testing.T) {
+	cfg, err := cliTest("--quick-db", "../test/test1.db")
+	assert(t, err == "", "did not succeed ", err)
+	assert(t, len(cfg.Databases) == 1, "1 db should be configured")
+
+	cfgdb := ckConfig(cfg.Databases[0])
+	assert(t, *cfgdb.DatabaseDef.Id == "test1", "the db has a wrong id")
+	assert(t, *cfgdb.DatabaseDef.Path == "../test/test1.db", "the db has not the correct Path")
+	assert(t, cfgdb.ConfigFilePath != "", "the db is not correctly marked regarding having config file")
+	assert(t, !cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
+	assert(t, !cfgdb.DatabaseDef.ReadOnly, "the db has not the correct ReadOnly value")
+}
+
 func TestCliEmpty(t *testing.T) {
 	_, err := cliTest()
 	assert(t, err != "", "succeeded, but shouldn't have ", err)
@@ -64,123 +77,48 @@ func TestCliServeInvalidDir2(t *testing.T) {
 	assert(t, err != "", "succeeded, but shouldn't have ", err)
 }
 
-func TestCliMem(t *testing.T) {
-	cfg, err := cliTest("--mem-db", "mem1")
-	assert(t, err == "", "did not succeed ", err)
-	assert(t, len(cfg.Databases) == 1, "only one db should be configured")
-	assert(t, cfg.Databases[0].Id == "mem1", "the db has a wrong id")
-	assert(t, cfg.Databases[0].Path == ":memory:", "the db is not on memory")
-}
-
-func TestCliFile(t *testing.T) {
-	cfg, err := cliTest("--db", "../test/test.db")
-	assert(t, err == "", "did not succeed ", err)
-	assert(t, len(cfg.Databases) == 1, "only one db should be configured")
-	assert(t, cfg.Databases[0].Id == "test", "the db has a wrong id")
-	assert(t, cfg.Databases[0].Path == "../test/test.db", "the db has not the correct Path")
-}
-
-func TestCliShortFileName(t *testing.T) {
-	cfg, err := cliTest("--db", "../test/a")
-	assert(t, err == "", "did not succeed ", err)
-	assert(t, cfg.Databases[0].Id == "a", "the db has a wrong id ", err)
-}
-
-func TestCliDifferentExtension(t *testing.T) {
-	cfg, err := cliTest("--db", "../test/a.sqlite")
-	assert(t, err == "", "did not succeed ", err)
-	assert(t, cfg.Databases[0].Id == "a", "the db has a wrong id ", err)
-
-	cfg, err = cliTest("--db", "../test/a.b")
-	assert(t, err == "", "did not succeed ", err)
-	assert(t, cfg.Databases[0].Id == "a", "the db has a wrong id ", err)
-}
-
-func TestCliOnlyExtension(t *testing.T) {
-	_, err := cliTest("--db", "../test/.db")
-	assert(t, err != "", "did succeed, but it shouldn't have ", err)
-}
-
-func TestCliMixed(t *testing.T) {
-	cfg, err := cliTest("--db", "../test/test1.db", "--mem-db", "mem1", "--mem-db", "mem2", "--db", "../test/test2.db")
-	assert(t, err == "", "did not succeed ", err)
-	assert(t, len(cfg.Databases) == 4, "four db should be configured")
-	assert(t, cfg.Databases[0].Id == "test1", "the db has a wrong id")
-	assert(t, cfg.Databases[0].Path == "../test/test1.db", "the db has not the correct Path")
-	assert(t, cfg.Databases[1].Id == "test2", "the db has a wrong id")
-	assert(t, cfg.Databases[1].Path == "../test/test2.db", "the db has not the correct Path")
-	assert(t, cfg.Databases[2].Id == "mem1", "the db has a wrong id")
-	assert(t, cfg.Databases[2].Path == ":memory:", "the db is not on memory")
-	assert(t, cfg.Databases[3].Id == "mem2", "the db has a wrong id")
-	assert(t, cfg.Databases[3].Path == ":memory:", "the db is not on memory")
-}
-
 func TestConfigs(t *testing.T) {
-	cfg, err := cliTest("--db", "../test/test1.db", "--mem-db", "mem1:../test/mem1.yaml", "--mem-db", "mem2", "--db", "../test/test2.db", "--serve-dir", "../test")
+	cfg, err := cliTest("--db", "../test/test1.yaml", "--db", "../test/mem1.yaml")
 	assert(t, err == "", "did not succeed ", err)
-	assert(t, len(cfg.Databases) == 4, "four db should be configured")
+	assert(t, len(cfg.Databases) == 2, "two db should be configured")
 
-	assert(t, cfg.Databases[0].Id == "test1", "the db has a wrong id")
-	assert(t, cfg.Databases[0].Path == "../test/test1.db", "the db has not the correct Path")
-	assert(t, cfg.Databases[0].CompanionFilePath != "", "the db is not correctly marked regarding having config file")
-	assert(t, cfg.Databases[0].Auth.Mode == authModeHttp, "the db has not the correct Auth Mode")
-	assert(t, cfg.Databases[0].Auth.ByQuery == "", "the db has ByQuery with a value")
-	assert(t, len(cfg.Databases[0].Auth.ByCredentials) == 2, "the db has not the correct number of credentials")
-	assert(t, cfg.Databases[0].Auth.ByCredentials[0].User == "myUser1", "the db has not the correct first user")
-	assert(t, cfg.Databases[0].Auth.ByCredentials[0].Password == "myHotPassword", "the db has not the correct first password")
-	assert(t, cfg.Databases[0].Auth.ByCredentials[0].HashedPassword == "", "the db has not the correct first hashed password")
-	assert(t, cfg.Databases[0].Auth.ByCredentials[1].User == "myUser2", "the db has not the correct second user")
-	assert(t, cfg.Databases[0].Auth.ByCredentials[1].Password == "", "the db has not the correct second password")
-	assert(t, len(cfg.Databases[0].Auth.ByCredentials[1].HashedPassword) == 64, "the db has not the correct second hashed password")
-	assert(t, cfg.Databases[0].DisableWALMode, "the db has not the correct WAL mode")
-	assert(t, cfg.Databases[0].ReadOnly, "the db has not the correct ReadOnly value")
-	assert(t, !cfg.Databases[0].UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
-	assert(t, cfg.Databases[0].CORSOrigin == "", "the db has not the correct CORSOrigin value")
-	assert(t, *cfg.Databases[0].Maintenance.Schedule == "0 0 * * *", "the db has not the correct Maintenance.Schedule value")
-	assert(t, cfg.Databases[0].Maintenance.DoVacuum, "the db has not the correct Maintenance.DoVacuum value")
-	assert(t, cfg.Databases[0].Maintenance.DoBackup, "the db has not the correct Maintenance.DoBackup value")
-	assert(t, cfg.Databases[0].Maintenance.BackupTemplate == "~/first_%s.db", "the db has not the correct Maintenance.BackupTemplate value")
-	assert(t, cfg.Databases[0].Maintenance.NumFiles == 3, "the db has not the correct Maintenance.NumFiles value")
-	assert(t, len(cfg.Databases[0].InitStatements) == 0, "the db has not the correct number of init statements")
-	assert(t, len(cfg.Databases[0].StoredStatement) == 0, "the db has not the correct number of stored statements")
+	cfgdb := ckConfig(cfg.Databases[0])
+	assert(t, *cfgdb.DatabaseDef.Id == "test1", "the db has a wrong id")
+	assert(t, *cfgdb.DatabaseDef.Path == "../test/test1.db", "the db has not the correct Path")
+	assert(t, cfgdb.ConfigFilePath != "", "the db is not correctly marked regarding having config file")
+	assert(t, cfgdb.Auth.Mode == authModeHttp, "the db has not the correct Auth Mode")
+	assert(t, cfgdb.Auth.ByQuery == "", "the db has ByQuery with a value")
+	assert(t, len(cfgdb.Auth.ByCredentials) == 2, "the db has not the correct number of credentials")
+	assert(t, cfgdb.Auth.ByCredentials[0].User == "myUser1", "the db has not the correct first user")
+	assert(t, cfgdb.Auth.ByCredentials[0].Password == "myHotPassword", "the db has not the correct first password")
+	assert(t, cfgdb.Auth.ByCredentials[0].HashedPassword == "", "the db has not the correct first hashed password")
+	assert(t, cfgdb.Auth.ByCredentials[1].User == "myUser2", "the db has not the correct second user")
+	assert(t, cfgdb.Auth.ByCredentials[1].Password == "", "the db has not the correct second password")
+	assert(t, len(cfgdb.Auth.ByCredentials[1].HashedPassword) == 64, "the db has not the correct second hashed password")
+	assert(t, cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
+	assert(t, cfgdb.DatabaseDef.ReadOnly, "the db has not the correct ReadOnly value")
+	assert(t, !cfgdb.UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
+	assert(t, cfgdb.CORSOrigin == "", "the db has not the correct CORSOrigin value")
+	assert(t, *cfgdb.Maintenance.Schedule == "0 0 * * *", "the db has not the correct Maintenance.Schedule value")
+	assert(t, cfgdb.Maintenance.DoVacuum, "the db has not the correct Maintenance.DoVacuum value")
+	assert(t, cfgdb.Maintenance.DoBackup, "the db has not the correct Maintenance.DoBackup value")
+	assert(t, cfgdb.Maintenance.BackupTemplate == "~/first_%s.db", "the db has not the correct Maintenance.BackupTemplate value")
+	assert(t, cfgdb.Maintenance.NumFiles == 3, "the db has not the correct Maintenance.NumFiles value")
+	assert(t, len(cfgdb.InitStatements) == 0, "the db has not the correct number of init statements")
+	assert(t, len(cfgdb.StoredStatement) == 0, "the db has not the correct number of stored statements")
 
-	assert(t, cfg.Databases[1].Id == "test2", "the db has a wrong id")
-	assert(t, cfg.Databases[1].Path == "../test/test2.db", "the db has not the correct Path")
-	assert(t, cfg.Databases[1].CompanionFilePath == "", "the db is not correctly marked regarding having config file")
-	assert(t, cfg.Databases[1].Auth == nil, "the db has not the correct Auth Mode")
-	assert(t, !cfg.Databases[1].DisableWALMode, "the db has not the correct WAL mode")
-	assert(t, !cfg.Databases[1].ReadOnly, "the db has not the correct ReadOnly value")
-	assert(t, !cfg.Databases[1].UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
-	assert(t, cfg.Databases[1].CORSOrigin == "", "the db has not the correct CORSOrigin value")
-	assert(t, cfg.Databases[1].Maintenance == nil, "the db has not the correct Maintenance value")
-	assert(t, len(cfg.Databases[1].InitStatements) == 0, "the db has not the correct number of init statements")
-	assert(t, len(cfg.Databases[1].StoredStatement) == 0, "the db has not the correct number of stored statements")
-
-	assert(t, cfg.Databases[2].Id == "mem1", "the db has a wrong id")
-	assert(t, cfg.Databases[2].Path == ":memory:", "the db is not on memory")
-	assert(t, cfg.Databases[2].CompanionFilePath != "", "the db is not correctly marked regarding having config file")
-	assert(t, cfg.Databases[2].Auth.Mode == authModeInline, "the db has not the correct Auth Mode")
-	assert(t, cfg.Databases[2].Auth.ByQuery != "", "the db has ByQuery without a value")
-	assert(t, len(cfg.Databases[2].Auth.ByCredentials) == 0, "the db has not the correct number of credentials")
-	assert(t, !cfg.Databases[2].DisableWALMode, "the db has not the correct WAL mode")
-	assert(t, !cfg.Databases[2].ReadOnly, "the db has not the correct ReadOnly value")
-	assert(t, cfg.Databases[2].UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
-	assert(t, cfg.Databases[2].CORSOrigin != "", "the db has not the correct CORSOrigin value")
-	assert(t, cfg.Databases[2].Maintenance == nil, "the db has not the correct Maintenance value")
-	assert(t, len(cfg.Databases[2].InitStatements) == 4, "the db has not the correct number of init statements")
-	assert(t, len(cfg.Databases[2].StoredStatement) == 2, "the db has not the correct number of stored statements")
-
-	assert(t, cfg.Databases[3].Id == "mem2", "the db has a wrong id")
-	assert(t, cfg.Databases[3].Path == ":memory:", "the db is not on memory")
-	assert(t, cfg.Databases[3].CompanionFilePath == "", "the db is not correctly marked regarding having config file")
-	assert(t, cfg.Databases[3].Auth == nil, "the db has not the correct Auth Mode")
-	assert(t, !cfg.Databases[3].DisableWALMode, "the db has not the correct WAL mode")
-	assert(t, !cfg.Databases[3].ReadOnly, "the db has not the correct ReadOnly value")
-	assert(t, !cfg.Databases[3].UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
-	assert(t, cfg.Databases[3].CORSOrigin == "", "the db has not the correct CORSOrigin value")
-	assert(t, cfg.Databases[3].Maintenance == nil, "the db has not the correct Maintenance value")
-	assert(t, len(cfg.Databases[3].InitStatements) == 0, "the db has not the correct number of init statements")
-	assert(t, len(cfg.Databases[3].StoredStatement) == 0, "the db has not the correct number of stored statements")
-
-	assert(t, cfg.ServeDir != nil, "a dir to serve should be configured")
+	cfgdb = ckConfig(cfg.Databases[1])
+	assert(t, *cfgdb.DatabaseDef.Id == "mem1", "the db has a wrong id")
+	assert(t, *cfgdb.DatabaseDef.Path == ":memory:", "the db is not on memory")
+	assert(t, cfgdb.ConfigFilePath != "", "the db is not correctly marked regarding having config file")
+	assert(t, cfgdb.Auth.Mode == authModeInline, "the db has not the correct Auth Mode")
+	assert(t, cfgdb.Auth.ByQuery != "", "the db has ByQuery without a value")
+	assert(t, len(cfgdb.Auth.ByCredentials) == 0, "the db has not the correct number of credentials")
+	assert(t, !cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
+	assert(t, !cfgdb.DatabaseDef.ReadOnly, "the db has not the correct ReadOnly value")
+	assert(t, cfgdb.UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
+	assert(t, cfgdb.CORSOrigin != "", "the db has not the correct CORSOrigin value")
+	assert(t, cfgdb.Maintenance == nil, "the db has not the correct Maintenance value")
+	assert(t, len(cfgdb.InitStatements) == 4, "the db has not the correct number of init statements")
+	assert(t, len(cfgdb.StoredStatement) == 2, "the db has not the correct number of stored statements")
 }

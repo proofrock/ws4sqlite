@@ -74,19 +74,26 @@ type storedStatement struct {
 	Sql string `yaml:"sql"`
 }
 
+type DatabaseDef struct {
+	Type           *string `yaml:"type"`           // SQLITE
+	InMemory       *bool   `yaml:"inMemory"`       // if type = SQLITE, default = false
+	Path           *string `yaml:"path"`           // if type = SQLITE and InMemory = false
+	Id             *string `yaml:"id"`             // if type = SQLITE, optional if InMemory = true
+	DisableWALMode bool    `yaml:"disableWALMode"` // if type = SQLITE
+	ReadOnly       bool    `yaml:"readOnly"`
+}
+
 type db struct {
-	Id                      string
-	Path                    string
-	CompanionFilePath       string
+	ConfigFilePath          string
+	DatabaseDef             DatabaseDef       `yaml:"database"`
 	Auth                    *authr            `yaml:"auth"`
-	ReadOnly                bool              `yaml:"readOnly"`
 	CORSOrigin              string            `yaml:"corsOrigin"`
 	UseOnlyStoredStatements bool              `yaml:"useOnlyStoredStatements"`
-	DisableWALMode          bool              `yaml:"disableWALMode"`
 	Maintenance             *scheduledTask    `yaml:"maintenance"`
 	ScheduledTasks          []scheduledTask   `yaml:"scheduledTasks"`
 	StoredStatement         []storedStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`
+	ToCreate                bool              // if type = SQLITE
 	Db                      *sql.DB
 	DbConn                  *sql.Conn
 	StoredStatsMap          map[string]string

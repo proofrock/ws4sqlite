@@ -18,11 +18,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/robfig/cron/v3"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/robfig/cron/v3"
 )
 
 // The post-0.14 "scheduledTasks" structure is only actually tested in TestAtStartupMultiple, but the contents of the
@@ -30,7 +31,7 @@ import (
 
 func cleanSchedTasksFiles(cfg config) {
 	for i := range cfg.Databases {
-		os.Remove(cfg.Databases[i].Path)
+		os.Remove(*cfg.Databases[i].DatabaseDef.Path)
 		bkpDir, bkpFile := filepath.Dir(cfg.Databases[i].Maintenance.BackupTemplate),
 			filepath.Base(cfg.Databases[i].Maintenance.BackupTemplate)
 		list, _ := filepath.Glob(fmt.Sprintf(filepath.Join(bkpDir, bkpFile), bkpTimeGlob))
@@ -62,9 +63,11 @@ func TestSchedTasks(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test1",
-				Path:           "../test/test1.db",
-				DisableWALMode: true, // generate only ".db" files
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test1"),
+					Path:           Ptr("../test/test1.db"),
+					DisableWALMode: true, // generate only ".db" files
+				},
 				Maintenance: &scheduledTask{
 					Schedule:       &sched,
 					DoVacuum:       false,
@@ -73,9 +76,11 @@ func TestSchedTasks(t *testing.T) {
 					NumFiles:       1,
 				},
 			}, {
-				Id:             "test2",
-				Path:           "../test/test2.db",
-				DisableWALMode: true, // generate only ".db" files
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test2"),
+					Path:           Ptr("../test/test2.db"),
+					DisableWALMode: true, // generate only ".db" files
+				},
 				Maintenance: &scheduledTask{
 					Schedule:       &sched,
 					DoVacuum:       false,
@@ -94,7 +99,7 @@ func TestSchedTasks(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	if !fileExists(cfg.Databases[0].Path) || !fileExists(cfg.Databases[1].Path) {
+	if !fileExists(*cfg.Databases[0].DatabaseDef.Path) || !fileExists(*cfg.Databases[1].DatabaseDef.Path) {
 		t.Error("db file not created")
 		return
 	}
@@ -161,15 +166,17 @@ func TestSchedTasksWithReadOnly(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test",
-				Path:           "../test/test.db",
-				DisableWALMode: true, // generate only ".db" files
-				ReadOnly:       true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test"),
+					Path:           Ptr("../test/test.db"),
+					DisableWALMode: true, // generate only ".db" files
+					ReadOnly:       true,
+				},
 				Maintenance: &scheduledTask{
 					Schedule:       &sched,
 					DoVacuum:       false,
 					DoBackup:       true,
-					BackupTemplate: "../test/test1_%s.db",
+					BackupTemplate: "../test/test_%s.db",
 					NumFiles:       1,
 				},
 			},
@@ -204,9 +211,11 @@ func TestSchedTasksWithStatement(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test",
-				Path:           "../test/test.db",
-				DisableWALMode: true, // generate only ".db" files
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test"),
+					Path:           Ptr("../test/test.db"),
+					DisableWALMode: true, // generate only ".db" files
+				},
 				Maintenance: &scheduledTask{
 					Schedule:   &sched,
 					DoVacuum:   false,
@@ -252,14 +261,16 @@ func TestAtStartup(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test",
-				Path:           "../test/test.db",
-				DisableWALMode: true, // generate only ".db" files
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test"),
+					Path:           Ptr("../test/test.db"),
+					DisableWALMode: true, // generate only ".db" files
+				},
 				Maintenance: &scheduledTask{
 					AtStartup:      &t_r_u_e,
 					DoVacuum:       false,
 					DoBackup:       true,
-					BackupTemplate: "../test/test1_%s.db",
+					BackupTemplate: "../test/test_%s.db",
 					NumFiles:       1,
 				},
 			},
@@ -293,9 +304,11 @@ func TestAtStartupMultiple(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test",
-				Path:           "../test/test.db",
-				DisableWALMode: true, // generate only ".db" files
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test"),
+					Path:           Ptr("../test/test.db"),
+					DisableWALMode: true, // generate only ".db" files
+				},
 				InitStatements: []string{
 					"CREATE TABLE TMP (ID INTEGER)",
 				},

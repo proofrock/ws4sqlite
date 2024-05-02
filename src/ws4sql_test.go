@@ -99,7 +99,7 @@ func mkRaw(mapp any) json.RawMessage {
 	return bs
 }
 
-func TestSetup(t *testing.T) {
+func TestSetupReg(t *testing.T) {
 	os.Remove("../test/test.db")
 
 	cfg := config{
@@ -107,8 +107,10 @@ func TestSetup(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.db",
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.db"),
+				},
 				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
@@ -559,10 +561,12 @@ func TestSetupRO(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.db",
-				// DisableWALMode: true,
-				ReadOnly: true,
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.db"),
+					// DisableWALMode: true,
+					ReadOnly: true,
+				},
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",
@@ -657,10 +661,12 @@ func TestSetupSQO(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.db",
-				// DisableWALMode: true,
-				ReadOnly:                true,
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.db"),
+					// DisableWALMode: true,
+					ReadOnly: true,
+				},
 				UseOnlyStoredStatements: true,
 				StoredStatement: []storedStatement{
 					{
@@ -725,8 +731,10 @@ func TestSetupMEM(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
@@ -795,10 +803,12 @@ func TestSetupMEM_RO(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:       "test",
-				Path:     ":memory:",
-				ReadOnly: true,
-				// DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+					ReadOnly: true,
+					// DisableWALMode: true,
+				},
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",
@@ -845,8 +855,10 @@ func TestSetupWITH_ADD_PROPS(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "file::memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 				// DisableWALMode: true,
 				StoredStatement: []storedStatement{
 					{
@@ -895,10 +907,12 @@ func TestRO_MEM_IS(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:       "test",
-				Path:     ":memory:",
-				ReadOnly: true,
-				// DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+					ReadOnly: true,
+					// DisableWALMode: true,
+				},
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 				},
@@ -923,8 +937,10 @@ func Test_IS_Err(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 				// DisableWALMode: true,
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
@@ -950,11 +966,15 @@ func Test_DoubleId_Err(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 			}, {
-				Id:   "test",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 			},
 		},
 	}
@@ -986,8 +1006,10 @@ func Test_DelWhenInitFails(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.db",
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.db"),
+				},
 				InitStatements: []string{
 					"CLEARLY INVALID SQL",
 				},
@@ -1024,8 +1046,10 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.db",
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.db"),
+				},
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 				},
@@ -1046,8 +1070,10 @@ func Test_CreateWithQuestionMark(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.db",
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.db"),
+				},
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT)",
 				},
@@ -1076,15 +1102,19 @@ func TestTwoServesOneDb(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test1",
-				Path: "../test/test.db",
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test1"),
+					Path: Ptr("../test/test.db"),
+				},
 				InitStatements: []string{
 					"CREATE TABLE T (NUM INT)",
 				},
 			}, {
-				Id:       "test2",
-				Path:     "../test/test.db",
-				ReadOnly: true,
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test2"),
+					Path:     Ptr("../test/test.db"),
+					ReadOnly: true,
+				},
 			},
 		},
 	}
@@ -1144,8 +1174,10 @@ func TestItemFieldsSetup(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 				InitStatements: []string{
 					"CREATE TABLE T1 (ID INT PRIMARY KEY, VAL TEXT NOT NULL)",
 				},
@@ -1334,8 +1366,10 @@ func TestUnicode(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test1",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 				InitStatements: []string{
 					"CREATE TABLE T (TXT TEXT)",
 				},
@@ -1362,12 +1396,12 @@ func TestUnicode(t *testing.T) {
 		},
 	}
 
-	code, body, _ := call("test1", req1, t)
+	code, body, _ := call("test", req1, t)
 	if code != 200 {
 		t.Error("INSERT failed", body)
 	}
 
-	code, body, res := call("test1", req2, t)
+	code, body, res := call("test", req2, t)
 	if code != 200 {
 		t.Error("SELECT failed", body)
 	}
@@ -1386,8 +1420,10 @@ func TestFailBegin(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test1",
-				Path: ":memory:",
+				DatabaseDef: DatabaseDef{
+					Id:       Ptr("test"),
+					InMemory: Ptr(true),
+				},
 				InitStatements: []string{
 					"CREATE TABLE T (TXT TEXT)",
 				},
@@ -1416,7 +1452,7 @@ func TestFailBegin(t *testing.T) {
 		},
 	}
 
-	code, _, res := call("test1", req, t)
+	code, _, res := call("test", req, t)
 	if code != 200 {
 		t.Error("request failed, but shouldn't have")
 	}
@@ -1445,8 +1481,10 @@ func TestExoticSuffixes(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:   "test",
-				Path: "../test/test.sqlite3",
+				DatabaseDef: DatabaseDef{
+					Id:   Ptr("test"),
+					Path: Ptr("../test/test.sqlite3"),
+				},
 				StoredStatement: []storedStatement{
 					{
 						Id:  "Q",

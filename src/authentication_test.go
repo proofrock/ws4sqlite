@@ -36,14 +36,18 @@ func TestSetupAuthCreds(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test0",
-				Path:           "../test/test0.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test0"),
+					Path:           Ptr("../test/test0.db"),
+					DisableWALMode: true,
+				},
 			},
 			{
-				Id:             "test1",
-				Path:           "../test/test1.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test1"),
+					Path:           Ptr("../test/test1.db"),
+					DisableWALMode: true,
+				},
 				Auth: &authr{
 					Mode: "INLINE",
 					ByCredentials: []credentialsCfg{
@@ -59,9 +63,11 @@ func TestSetupAuthCreds(t *testing.T) {
 				},
 			},
 			{
-				Id:             "test2",
-				Path:           "../test/test2.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test2"),
+					Path:           Ptr("../test/test2.db"),
+					DisableWALMode: true,
+				},
 				InitStatements: []string{
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
@@ -322,9 +328,11 @@ func TestBASetupAuthCreds(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test1",
-				Path:           "../test/test1.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test1"),
+					Path:           Ptr("../test/test1.db"),
+					DisableWALMode: true,
+				},
 				Auth: &authr{
 					Mode: "HTTP",
 					ByCredentials: []credentialsCfg{
@@ -340,9 +348,11 @@ func TestBASetupAuthCreds(t *testing.T) {
 				},
 			},
 			{
-				Id:             "test2",
-				Path:           "../test/test2.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test2"),
+					Path:           Ptr("../test/test2.db"),
+					DisableWALMode: true,
+				},
 				InitStatements: []string{
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
@@ -549,9 +559,11 @@ func TestCustomCodeSetup(t *testing.T) {
 		Port:     12321,
 		Databases: []db{
 			{
-				Id:             "test1",
-				Path:           "../test/test1.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test1"),
+					Path:           Ptr("../test/test1.db"),
+					DisableWALMode: true,
+				},
 				Auth: &authr{
 					Mode:            "HTTP",
 					CustomErrorCode: &errCode,
@@ -568,9 +580,11 @@ func TestCustomCodeSetup(t *testing.T) {
 				},
 			},
 			{
-				Id:             "test2",
-				Path:           "../test/test2.db",
-				DisableWALMode: true,
+				DatabaseDef: DatabaseDef{
+					Id:             Ptr("test2"),
+					Path:           Ptr("../test/test2.db"),
+					DisableWALMode: true,
+				},
 				InitStatements: []string{
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",

@@ -19,7 +19,6 @@ package main
 import (
 	"flag"
 	"os"
-	"path/filepath"
 	"strings"
 
 	mllog "github.com/proofrock/go-mylittlelogger"
@@ -49,9 +48,9 @@ func parseCLI() config {
 
 	// cli parameters
 	var dbFiles arrayFlags
-	fs.Var(&dbFiles, "db", "Repeatable; paths of file-based databases")
-	var memDb arrayFlags
-	fs.Var(&memDb, "mem-db", "Repeatable; config for memory-based databases (format: ID[:configFilePath])")
+	fs.Var(&dbFiles, "db", "Repeatable; paths of config yamls")
+
+	quickDb := fs.String("quick-db", "", "Shortcut to simply open a sqlite db file (for quicker config)")
 
 	serveDir := fs.String("serve-dir", "", "A directory to serve with builtin HTTP server")
 
@@ -70,80 +69,42 @@ func parseCLI() config {
 
 	var ret config
 
-	// Fail fast
-	if len(dbFiles)+len(memDb) == 0 && *serveDir == "" {
+	if *quickDb != "" {
+		if len(dbFiles) > 0 {
+			mllog.Fatal("--quick-db must be the only database configured, if present")
+		}
+
+		ret.Databases = append(ret.Databases, db{
+			ConfigFilePath: "quick db setting",
+			DatabaseDef: DatabaseDef{
+				Type: Ptr("SQLITE"),
+				Path: quickDb,
+			},
+		})
+	} else if len(dbFiles) > 0 {
+		for i := range dbFiles {
+			yamlFile := expandHomeDir(dbFiles[i], "companion file")
+
+			var dbConfig db
+			dbConfig.ConfigFilePath = yamlFile
+
+			if fileExists(yamlFile) {
+				cfgData, err := os.ReadFile(yamlFile)
+				if err != nil {
+					mllog.Fatal("in reading config file: ", err.Error())
+				}
+
+				if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
+					mllog.Fatal("in parsing config file: ", err.Error())
+				}
+			} else {
+				mllog.Fatal("non-existing config file: ", yamlFile)
+			}
+
+			ret.Databases = append(ret.Databases, dbConfig)
+		}
+	} else if *serveDir == "" {
 		mllog.Fatal("no database and no dir to serve specified")
-	}
-
-	for i := range dbFiles {
-		// if there's no ":", second is empty ("")
-		dbFile, yamlFile := splitOnColon(dbFiles[i])
-
-		// resolves '~'
-		dbFile = expandHomeDir(dbFile, "database file")
-
-		dir := filepath.Dir(dbFile)
-
-		//strips the extension from the file name (see issue #11)
-		id := strings.TrimSuffix(filepath.Base(dbFile), filepath.Ext(dbFile))
-
-		if len(id) == 0 {
-			mllog.Fatal("base filename cannot be empty")
-		}
-
-		if yamlFile == "" {
-			yamlFile = filepath.Join(dir, id+".yaml")
-		} else {
-			yamlFile = expandHomeDir(yamlFile, "companion file")
-		}
-
-		var dbConfig db
-		if fileExists(yamlFile) {
-			cfgData, err := os.ReadFile(yamlFile)
-			if err != nil {
-				mllog.Fatal("in reading config file: ", err.Error())
-			}
-
-			if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
-				mllog.Fatal("in parsing config file: ", err.Error())
-			}
-		} else {
-			yamlFile = ""
-		}
-
-		dbConfig.Id = id
-		dbConfig.Path = dbFile
-		dbConfig.CompanionFilePath = yamlFile
-		ret.Databases = append(ret.Databases, dbConfig)
-	}
-
-	for i := range memDb {
-		// if there's no ":", second is empty ("")
-		id, yamlFile := splitOnColon(memDb[i])
-
-		var dbConfig db
-		if yamlFile != "" {
-			// resolves '~'
-			yamlFile = expandHomeDir(yamlFile, "mem-db yaml file")
-
-			if !fileExists(yamlFile) {
-				mllog.Fatal("mem-db yaml file does not exist")
-			}
-
-			cfgData, err := os.ReadFile(yamlFile)
-			if err != nil {
-				mllog.Fatal("in reading config file: ", err.Error())
-			}
-
-			if err = yaml.Unmarshal(cfgData, &dbConfig); err != nil {
-				mllog.Fatal("in parsing config file: ", err.Error())
-			}
-		}
-
-		dbConfig.Id = id
-		dbConfig.Path = ":memory:"
-		dbConfig.CompanionFilePath = yamlFile
-		ret.Databases = append(ret.Databases, dbConfig)
 	}
 
 	if *serveDir != "" {

@@ -17,12 +17,10 @@
 package main
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 
@@ -109,40 +107,9 @@ func expandHomeDir(path string, desc string) string {
 	return ePath
 }
 
-// Crude but effective, I guess. At least, it's optimal for what I use it for: understand if a colon in second place is
-// a drive separator or not
-func isWindows() bool {
-	abshere, err := filepath.Abs(".") // in docker, this is "/"
-	if err != nil {
-		mllog.Fatalf("Error in OS detection: %s", err)
-	}
-	return len(abshere) > 1 && bytes.Runes([]byte(abshere))[1] == ':'
-}
-
-var isWin = isWindows()
-
-// Curiously, Go seems to lack an indexOf that allows to specify a starting point
-func indexRuneAfter(haystack string, needle rune, after int) int {
-	runes := bytes.Runes([]byte(haystack))
-	for idx := after + 1; idx < len(runes); idx++ {
-		if runes[idx] == needle {
-			return idx
-		}
-	}
-	return -1
-}
-
-// Returns the first two components of a column-delimited string; if there's no column, second is ""
-// On windows, skips the first ':' if it's after one rune, then take everything after the first colon
-func splitOnColon(toSplit string) (string, string) {
-	after := -1
-	if isWin {
-		after = 1
-	}
-	if pos := indexRuneAfter(toSplit, ':', after); pos >= 0 {
-		return toSplit[:pos], toSplit[pos+1:]
-	}
-	return toSplit, ""
+func Ptr[T any](str T) *T {
+	val := str
+	return &val
 }
 
 func getDefault[T any](m orderedmap.OrderedMap, key string) T {

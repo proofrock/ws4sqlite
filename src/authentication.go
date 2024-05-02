@@ -105,7 +105,7 @@ func parseAuth(db *db) {
 				var err error
 				b, err = hex.DecodeString(auth.ByCredentials[i].HashedPassword)
 				if err != nil || len(b) != 32 {
-					mllog.Fatalf("for db '%s', hashedPassword doesn't seem to be SHA256/hex.", db.Id)
+					mllog.Fatalf("for db '%s', hashedPassword doesn't seem to be SHA256/hex.", *db.DatabaseDef.Id)
 				}
 			} else {
 				bytes32 := sha256.Sum256([]byte(auth.ByCredentials[i].Password))

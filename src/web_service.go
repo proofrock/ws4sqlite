@@ -226,7 +226,13 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 		}
 
 		// Opens a transaction. One more occasion to specify: read only ;-)
-		tx, err := db.DbConn.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelReadCommitted, ReadOnly: db.ReadOnly})
+		tx, err := db.DbConn.BeginTx(
+			context.Background(),
+			&sql.TxOptions{
+				Isolation: sql.LevelReadCommitted,
+				ReadOnly:  db.DatabaseDef.ReadOnly,
+			},
+		)
 		if err != nil {
 			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
 		}
