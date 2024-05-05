@@ -35,7 +35,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "v0.17.0beta1"
+const version = "ws4sql-v0.17dev2"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite3", ":memory:")
