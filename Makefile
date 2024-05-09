@@ -38,17 +38,23 @@ dist:
 	rm -rf github.com/
 	mv bin/ws4sql-windows-10.0-amd64.exe bin/ws4sql.exe
 	cd bin/ && zip -9 ws4sql-v0.17dev2-win-x86_64.zip ws4sql.exe
+	cd bin/ && gpg --sign --default-key oss@germanorizzo.it --output ws4sql-v0.17dev2-win-x86_64.zip.gpg --detach-sig ws4sql-v0.17dev2-win-x86_64.zip
 	rm bin/ws4sql.exe
 	mv bin/ws4sql-darwin-10.12-amd64 bin/ws4sql
 	cd bin/ && zip -9 ws4sql-v0.17dev2-darwin-x86_64.zip ws4sql
+	cd bin/ && gpg --sign --default-key oss@germanorizzo.it --output ws4sql-v0.17dev2-darwin-x86_64.zip.gpg --detach-sig ws4sql-v0.17dev2-darwin-x86_64.zip
 	mv bin/ws4sql-darwin-10.12-arm64 bin/ws4sql
 	cd bin/ && zip -9 ws4sql-v0.17dev2-darwin-arm64.zip ws4sql
+	cd bin/ && gpg --sign --default-key oss@germanorizzo.it --output ws4sql-v0.17dev2-darwin-arm64.zip.gpg --detach-sig ws4sql-v0.17dev2-darwin-arm64.zip
 	mv bin/ws4sql-linux-amd64 bin/ws4sql
 	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17dev2-linux-x86_64.tar.gz"
+	cd bin/ && gpg --sign --default-key oss@germanorizzo.it --output ws4sql-v0.17dev2-linux-x86_64.tar.gz.gpg --detach-sig ws4sql-v0.17dev2-linux-x86_64.tar.gz
 	mv bin/ws4sql-linux-arm64 bin/ws4sql
 	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17dev2-linux-arm64.tar.gz"
+	cd bin/ && gpg --sign --default-key oss@germanorizzo.it --output ws4sql-v0.17dev2-linux-arm64.tar.gz.gpg --detach-sig ws4sql-v0.17dev2-linux-arm64.tar.gz
 	mv bin/ws4sql-linux-arm-6 bin/ws4sql
-	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17dev2-linux-arm-v6.tar.gz"
+	cd bin/ && bash -c "tar c ws4sql | gzip -9 > ws4sql-v0.17dev2-linux-armv6.tar.gz"
+	cd bin/ && gpg --sign --default-key oss@germanorizzo.it --output ws4sql-v0.17dev2-linux-armv6.tar.gz.gpg --detach-sig ws4sql-v0.17dev2-linux-armv6.tar.gz
 	rm bin/ws4sql
 
 docker:
