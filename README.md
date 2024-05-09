@@ -117,3 +117,11 @@ Many thanks and all the credits to these awesome projects:
 - and of course, [Google Go](https://go.dev).
 
 Kindly supported by [JetBrains for Open Source development](https://jb.gg/OpenSourceSupport)
+
+# GPG Signing
+
+Import my [key](https://public.germanorizzo.it/4BD993A579025E4932C0110DC368E8BA7D4453F6.gpgkey):
+
+```bash
+curl -sSL https://public.germanorizzo.it/4BD993A579025E4932C0110DC368E8BA7D4453F6.gpgkey | gpg --import -
+```
