@@ -1,7 +1,13 @@
+## v0.16.2
+*2024-06-19, Venice*
+
+- SQLite 3.46.0
+- Library updates
+
 ## v0.16.1
 *2024-04-18, Venice*
 
-- SQLite 3.45.2
+- SQLite 3.46.0
 - Library updates (incl. security fixes upstream)
 
 ## v0.16.0
