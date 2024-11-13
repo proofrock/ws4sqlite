@@ -1,3 +1,8 @@
+## v0.16.3
+*2024-11-13, Venice*
+
+- Library updates
+
 ## v0.16.2
 *2024-06-19, Venice*
 
