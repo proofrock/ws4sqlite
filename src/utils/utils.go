@@ -14,7 +14,7 @@
   OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 */
 
-package main
+package utils
 
 import (
 	"database/sql"
@@ -27,15 +27,16 @@ import (
 	"github.com/iancoleman/orderedmap"
 	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/structs"
 )
 
 // Uppercases (?) the first letter of a string
-func capitalize(str string) string {
+func Capitalize(str string) string {
 	return strings.ToUpper(str[0:1]) + str[1:]
 }
 
 // Does a file exist? No error returned.
-func fileExists(filename string) bool {
+func FileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return false
@@ -46,7 +47,7 @@ func fileExists(filename string) bool {
 }
 
 // Does a dir exist? No error returned.
-func dirExists(dirname string) bool {
+func DirExists(dirname string) bool {
 	info, err := os.Stat(dirname)
 	if os.IsNotExist(err) {
 		return false
@@ -57,7 +58,7 @@ func dirExists(dirname string) bool {
 }
 
 // Maps named parameters to the proper sql type, needed to use named params
-func vals2nameds(vals map[string]interface{}) []interface{} {
+func Vals2nameds(vals map[string]interface{}) []interface{} {
 	var nameds []interface{}
 	for key, val := range vals {
 		nameds = append(nameds, sql.Named(key, val))
@@ -65,14 +66,14 @@ func vals2nameds(vals map[string]interface{}) []interface{} {
 	return nameds
 }
 
-func isEmptyRaw(raw json.RawMessage) bool {
+func IsEmptyRaw(raw json.RawMessage) bool {
 	// the last check is for `null`
 	return len(raw) == 0 || slices.Equal(raw, []byte{110, 117, 108, 108})
 }
 
-func raw2params(raw json.RawMessage) (*requestParams, error) {
-	params := requestParams{}
-	if isEmptyRaw(raw) {
+func Raw2params(raw json.RawMessage) (*structs.RequestParams, error) {
+	params := structs.RequestParams{}
+	if IsEmptyRaw(raw) {
 		params.UnmarshalledArray = []any{}
 		return &params, nil
 	}
@@ -99,7 +100,7 @@ func raw2params(raw json.RawMessage) (*requestParams, error) {
 }
 
 // Processes paths with home (tilde) expansion. Fails if not valid
-func expandHomeDir(path string, desc string) string {
+func ExpandHomeDir(path string, desc string) string {
 	ePath, err := homedir.Expand(path)
 	if err != nil {
 		mllog.Fatalf("in expanding %s path: %s", desc, err.Error())
@@ -112,7 +113,7 @@ func Ptr[T any](str T) *T {
 	return &val
 }
 
-func getDefault[T any](m orderedmap.OrderedMap, key string) T {
+func GetDefault[T any](m orderedmap.OrderedMap, key string) T {
 	value, ok := m.Get(key)
 	if !ok {
 		var t T

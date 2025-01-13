@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/structs"
 )
 
 func assert(t *testing.T, condition bool, err ...interface{}) {
@@ -30,7 +31,7 @@ func assert(t *testing.T, condition bool, err ...interface{}) {
 	}
 }
 
-func cliTest(argv ...string) (config, string) {
+func cliTest(argv ...string) (structs.Config, string) {
 	args := os.Args
 	os.Args = append([]string{"app"}, argv...)
 	defer func() { os.Args = args }()
@@ -53,7 +54,7 @@ func TestQuickDb(t *testing.T) {
 	assert(t, *cfgdb.DatabaseDef.Id == "test1", "the db has a wrong id")
 	assert(t, *cfgdb.DatabaseDef.Path == "../test/test1.db", "the db has not the correct Path")
 	assert(t, cfgdb.ConfigFilePath != "", "the db is not correctly marked regarding having config file")
-	assert(t, !cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
+	assert(t, !*cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
 	assert(t, !cfgdb.DatabaseDef.ReadOnly, "the db has not the correct ReadOnly value")
 }
 
@@ -95,7 +96,7 @@ func TestConfigs(t *testing.T) {
 	assert(t, cfgdb.Auth.ByCredentials[1].User == "myUser2", "the db has not the correct second user")
 	assert(t, cfgdb.Auth.ByCredentials[1].Password == "", "the db has not the correct second password")
 	assert(t, len(cfgdb.Auth.ByCredentials[1].HashedPassword) == 64, "the db has not the correct second hashed password")
-	assert(t, cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
+	assert(t, *cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
 	assert(t, cfgdb.DatabaseDef.ReadOnly, "the db has not the correct ReadOnly value")
 	assert(t, !cfgdb.UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
 	assert(t, cfgdb.CORSOrigin == "", "the db has not the correct CORSOrigin value")
@@ -114,7 +115,7 @@ func TestConfigs(t *testing.T) {
 	assert(t, cfgdb.Auth.Mode == authModeInline, "the db has not the correct Auth Mode")
 	assert(t, cfgdb.Auth.ByQuery != "", "the db has ByQuery without a value")
 	assert(t, len(cfgdb.Auth.ByCredentials) == 0, "the db has not the correct number of credentials")
-	assert(t, !cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
+	assert(t, !*cfgdb.DatabaseDef.DisableWALMode, "the db has not the correct WAL mode")
 	assert(t, !cfgdb.DatabaseDef.ReadOnly, "the db has not the correct ReadOnly value")
 	assert(t, cfgdb.UseOnlyStoredStatements, "the db has not the correct UseOnlyStoredStatements value")
 	assert(t, cfgdb.CORSOrigin != "", "the db has not the correct CORSOrigin value")

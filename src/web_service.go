@@ -24,27 +24,40 @@ import (
 	"time"
 
 	"github.com/iancoleman/orderedmap"
+	"github.com/proofrock/ws4sql/engines"
+	"github.com/proofrock/ws4sql/structs"
+	"github.com/proofrock/ws4sql/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// Common interface for db.Conn and db.Tx
+type DBExecutor interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+}
+
+var ctx = context.Background()
+
 // Catches the panics and converts the argument in a struct that Fiber uses to
-// signal the error, setting the response code and the JSON that is actually returned
+// signal the error, setting the structs.Response code and the JSON that is actually returned
 // with all its properties.
 //
 // It uses <panic> and the recover middleware to manage errors because it's the only
 // way I know to let a custom structure/error arrive here; the standard way can only
 // wrap a string.
 func errHandler(c *fiber.Ctx, err error) error {
-	var ret wsError
+	var ret structs.WsError
 
-	// Converts all the possible errors that arrive here to a wsError
+	// Converts all the possible errors that arrive here to a structs.WSError
 	if fe, ok := err.(*fiber.Error); ok {
-		ret = newWSError(-1, fe.Code, capitalize(fe.Error()))
-	} else if wse, ok := err.(wsError); ok {
+		ret = structs.NewWSError(-1, fe.Code, "%s", utils.Capitalize(fe.Error()))
+	} else if wse, ok := err.(structs.WsError); ok {
 		ret = wse
 	} else {
-		ret = newWSError(-1, fiber.StatusInternalServerError, capitalize(err.Error()))
+		ret = structs.NewWSError(-1, fiber.StatusInternalServerError, "%s", utils.Capitalize(err.Error()))
 	}
 
 	return c.Status(ret.Code).JSON(ret)
@@ -52,18 +65,26 @@ func errHandler(c *fiber.Ctx, err error) error {
 
 // For a single query item, deals with a failure, determining if it must invalidate all of the transaction
 // or just report an error in the single query. In the former case, fails fast (panics), else it appends
-// the error to the response items, so the caller needs to return7continue
-func reportError(err error, code int, reqIdx int, noFail bool, results []responseItem) {
+// the error to the structs.Response items, so the caller needs to return7continue
+func reportError(err error, code int, reqIdx int, noFail bool, results []structs.ResponseItem) {
 	if !noFail {
-		panic(newWSError(reqIdx, code, err.Error()))
+		panic(structs.NewWSError(reqIdx, code, "%s", err.Error()))
 	}
-	results[reqIdx] = responseItem{false, nil, nil, nil, nil, nil, capitalize(err.Error())}
+	results[reqIdx] = structs.ResponseItem{
+		Success:          false,
+		RowsUpdated:      nil,
+		RowsUpdatedBatch: nil,
+		ResultHeaders:    nil,
+		ResultSet:        nil,
+		ResultSetList:    nil,
+		Error:            utils.Capitalize(err.Error()),
+	}
 }
 
-// Processes a query, and returns a suitable responseItem
+// Processes a query, and returns a suitable structs.ResponseItem
 //
 // This method is needed to execute properly the defers.
-func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params requestParams) (*responseItem, error) {
+func processWithResultSet(tx *DBExecutor, query string, isListResultSet bool, params structs.RequestParams) (*structs.ResponseItem, error) {
 	resultSet := make([]orderedmap.OrderedMap, 0)
 	resultSetList := make([][]interface{}, 0)
 
@@ -72,9 +93,9 @@ func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params
 	if params.UnmarshalledDict == nil && params.UnmarshalledArray == nil {
 		rows, err = nil, errors.New("processWithResultSet unreachable code")
 	} else if params.UnmarshalledDict != nil {
-		rows, err = tx.Query(query, vals2nameds(params.UnmarshalledDict)...)
+		rows, err = (*tx).QueryContext(ctx, query, utils.Vals2nameds(params.UnmarshalledDict)...)
 	} else {
-		rows, err = tx.Query(query, params.UnmarshalledArray...)
+		rows, err = (*tx).QueryContext(ctx, query, params.UnmarshalledArray...)
 	}
 	if err != nil {
 		return nil, err
@@ -113,21 +134,37 @@ func processWithResultSet(tx *sql.Tx, query string, isListResultSet bool, params
 	}
 
 	if isListResultSet {
-		return &responseItem{true, nil, nil, headers, nil, resultSetList, ""}, nil
+		return &structs.ResponseItem{
+			Success:          true,
+			RowsUpdated:      nil,
+			RowsUpdatedBatch: nil,
+			ResultHeaders:    headers,
+			ResultSet:        nil,
+			ResultSetList:    resultSetList,
+			Error:            "",
+		}, nil
 	}
-	return &responseItem{true, nil, nil, headers, resultSet, nil, ""}, nil
+	return &structs.ResponseItem{
+		Success:          true,
+		RowsUpdated:      nil,
+		RowsUpdatedBatch: nil,
+		ResultHeaders:    headers,
+		ResultSet:        resultSet,
+		ResultSetList:    nil,
+		Error:            "",
+	}, nil
 }
 
-// Process a single statement, and returns a suitable responseItem
-func processForExec(tx *sql.Tx, statement string, params requestParams) (*responseItem, error) {
+// Process a single statement, and returns a suitable structs.ResponseItem
+func processForExec(tx *DBExecutor, statement string, params structs.RequestParams) (*structs.ResponseItem, error) {
 	res := (sql.Result)(nil)
 	err := (error)(nil)
 	if params.UnmarshalledDict == nil && params.UnmarshalledArray == nil {
 		res, err = nil, errors.New("processWithResultSet unreachable code")
 	} else if params.UnmarshalledDict != nil {
-		res, err = tx.Exec(statement, vals2nameds(params.UnmarshalledDict)...)
+		res, err = (*tx).ExecContext(ctx, statement, utils.Vals2nameds(params.UnmarshalledDict)...)
 	} else {
-		res, err = tx.Exec(statement, params.UnmarshalledArray...)
+		res, err = (*tx).ExecContext(ctx, statement, params.UnmarshalledArray...)
 	}
 	if err != nil {
 		return nil, err
@@ -138,13 +175,21 @@ func processForExec(tx *sql.Tx, statement string, params requestParams) (*respon
 		return nil, err
 	}
 
-	return &responseItem{true, &rowsUpdated, nil, nil, nil, nil, ""}, nil
+	return &structs.ResponseItem{
+		Success:          true,
+		RowsUpdated:      &rowsUpdated,
+		RowsUpdatedBatch: nil,
+		ResultHeaders:    nil,
+		ResultSet:        nil,
+		ResultSetList:    nil,
+		Error:            "",
+	}, nil
 }
 
-// Process a batch statement, and returns a suitable responseItem.
+// Process a batch statement, and returns a suitable structs.ResponseItem.
 // It prepares the statement, then executes it for each of the values' sets.
-func processForExecBatch(tx *sql.Tx, q string, paramsBatch []requestParams) (*responseItem, error) {
-	ps, err := tx.Prepare(q)
+func processForExecBatch(tx *DBExecutor, q string, paramsBatch []structs.RequestParams) (*structs.ResponseItem, error) {
+	ps, err := (*tx).PrepareContext(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -157,9 +202,9 @@ func processForExecBatch(tx *sql.Tx, q string, paramsBatch []requestParams) (*re
 		if params.UnmarshalledDict == nil && params.UnmarshalledArray == nil {
 			res, err = nil, errors.New("processWithResultSet unreachable code")
 		} else if params.UnmarshalledDict != nil {
-			res, err = tx.Exec(q, vals2nameds(params.UnmarshalledDict)...)
+			res, err = (*tx).ExecContext(ctx, q, utils.Vals2nameds(params.UnmarshalledDict)...)
 		} else {
-			res, err = tx.Exec(q, params.UnmarshalledArray...)
+			res, err = (*tx).ExecContext(ctx, q, params.UnmarshalledArray...)
 		}
 		if err != nil {
 			return nil, err
@@ -173,7 +218,15 @@ func processForExecBatch(tx *sql.Tx, q string, paramsBatch []requestParams) (*re
 		rowsUpdatedBatch = append(rowsUpdatedBatch, rowsUpdated)
 	}
 
-	return &responseItem{true, nil, rowsUpdatedBatch, nil, nil, nil, ""}, nil
+	return &structs.ResponseItem{
+		Success:          true,
+		RowsUpdated:      nil,
+		RowsUpdatedBatch: rowsUpdatedBatch,
+		ResultHeaders:    nil,
+		ResultSet:        nil,
+		ResultSetList:    nil,
+		Error:            "",
+	}, nil
 }
 
 func ckSQL(sql string) string {
@@ -191,19 +244,32 @@ func ckSQL(sql string) string {
 
 // Handler for the POST. Receives the body of the HTTP request, parses it
 // and executes the transaction on the database retrieved from the URL path.
-// Constructs and sends the response.
+// Constructs and sends the structs.Response.
 func handler(databaseId string) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		var body request
+		var body structs.Request
 		if err := c.BodyParser(&body); err != nil {
-			return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
+			return structs.NewWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
 		}
 
 		isListResultSet := body.ResultFormat != nil && strings.EqualFold(*body.ResultFormat, "list")
 
 		db, found := dbs[databaseId]
 		if !found {
-			return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
+			return structs.NewWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
+		}
+
+		// Fail fast if empty
+		if len(body.Transaction) == 0 {
+			return structs.NewWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)")
+		}
+
+		// Static validation of the request, fails fast. This is done by database type: in general, we
+		// are looking for instructions that aren't supported by a certain database type.
+		// FIXME refactor
+		staticCheckErr := engines.GetFlavorForDb(db).CheckRequest(body)
+		if staticCheckErr != nil {
+			return *staticCheckErr
 		}
 
 		// Execute non-concurrently
@@ -215,39 +281,45 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				// When unauthenticated waits for 1s to hinder brute force attacks
 				time.Sleep(time.Second)
 				if db.Auth.CustomErrorCode != nil {
-					return newWSError(-1, *db.Auth.CustomErrorCode, err.Error())
+					return structs.NewWSError(-1, *db.Auth.CustomErrorCode, "%s", err.Error())
 				}
-				return newWSError(-1, fiber.StatusUnauthorized, err.Error())
+				return structs.NewWSError(-1, fiber.StatusUnauthorized, "%s", err.Error())
 			}
 		}
 
-		if len(body.Transaction) == 0 {
-			return newWSError(-1, fiber.StatusBadRequest, "missing statements list ('transaction' node)")
-		}
-
 		// Opens a transaction. One more occasion to specify: read only ;-)
-		tx, err := db.DbConn.BeginTx(
-			context.Background(),
-			&sql.TxOptions{
-				Isolation: sql.LevelReadCommitted,
-				ReadOnly:  db.DatabaseDef.ReadOnly,
-			},
-		)
-		if err != nil {
-			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
+		var dbExecutor DBExecutor
+		useTransaction := *db.DatabaseDef.Type != engines.ID_DUCKDB || !db.DatabaseDef.ReadOnly
+		if useTransaction {
+			var err error
+			dbExecutor, err = db.DbConn.BeginTx(
+				context.Background(),
+				&sql.TxOptions{
+					Isolation: engines.GetFlavorForDb(db).GetDefaultIsolationLevel(),
+					ReadOnly:  db.DatabaseDef.ReadOnly,
+				},
+			)
+			if err != nil {
+				return structs.NewWSError(-1, fiber.StatusInternalServerError, "%s", err.Error())
+			}
+		} else {
+			dbExecutor = db.DbConn
 		}
 
 		tainted := true // If I reach the end of the method, I switch this to false to signal success
 		defer func() {
-			if tainted {
-				tx.Rollback()
-			} else {
-				tx.Commit()
+			if useTransaction {
+				var tx = dbExecutor.(*sql.Tx)
+				if tainted {
+					tx.Rollback()
+				} else {
+					tx.Commit()
+				}
 			}
 		}()
 
-		var ret response
-		ret.Results = make([]responseItem, len(body.Transaction))
+		var ret structs.Response
+		ret.Results = make([]structs.ResponseItem, len(body.Transaction))
 
 		for i := range body.Transaction {
 			txItem := body.Transaction[i]
@@ -259,7 +331,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 
 			hasResultSet := txItem.Query != ""
 
-			if !isEmptyRaw(txItem.Values) && len(txItem.ValuesBatch) != 0 {
+			if !utils.IsEmptyRaw(txItem.Values) && len(txItem.ValuesBatch) != 0 {
 				reportError(errors.New("cannot specify both values and valuesBatch"), fiber.StatusBadRequest, i, txItem.NoFail, ret.Results)
 				continue
 			}
@@ -300,9 +372,9 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 
 			if len(txItem.ValuesBatch) > 0 {
 				// Process a batch statement (multiple values)
-				var paramsBatch []requestParams
+				var paramsBatch []structs.RequestParams
 				for i2 := range txItem.ValuesBatch {
-					params, err := raw2params(txItem.ValuesBatch[i2])
+					params, err := utils.Raw2params(txItem.ValuesBatch[i2])
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue
@@ -311,7 +383,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 					paramsBatch = append(paramsBatch, *params)
 				}
 
-				retE, err := processForExecBatch(tx, sqll, paramsBatch)
+				retE, err := processForExecBatch(&dbExecutor, sqll, paramsBatch)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -320,7 +392,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				ret.Results[i] = *retE
 			} else {
 				// At most one values set (be it query or statement)
-				params, err := raw2params(txItem.Values)
+				params, err := utils.Raw2params(txItem.Values)
 				if err != nil {
 					reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 					continue
@@ -329,7 +401,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				if hasResultSet {
 					// Query
 					// Externalized in a func so that defer rows.Close() actually runs
-					retWR, err := processWithResultSet(tx, sqll, isListResultSet, *params)
+					retWR, err := processWithResultSet(&dbExecutor, sqll, isListResultSet, *params)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue
@@ -338,7 +410,7 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 					ret.Results[i] = *retWR
 				} else {
 					// Statement
-					retE, err := processForExec(tx, sqll, *params)
+					retE, err := processForExec(&dbExecutor, sqll, *params)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue

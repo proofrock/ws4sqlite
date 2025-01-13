@@ -29,41 +29,32 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/engines"
+	"github.com/proofrock/ws4sql/structs"
 	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	_ "github.com/marcboeker/go-duckdb"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "ws4sql-v0.17dev2"
-
-func getSQLiteVersion() (string, error) {
-	dbObj, err := sql.Open("sqlite3", ":memory:")
-	defer dbObj.Close()
-	if err != nil {
-		return "", err
-	}
-	row := dbObj.QueryRow("SELECT sqlite_version()")
-	var ver string
-	err = row.Scan(&ver)
-	if err != nil {
-		return "", err
-	}
-	return ver, nil
-}
+const version = "ws4sql-v0.17dev3"
 
 // Simply prints a header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
-	header := fmt.Sprintf("ws4sql %s", version)
-	sqliteVersion, err := getSQLiteVersion()
-	if err != nil {
-		mllog.StdOut(header)
-		mllog.Fatalf("getting SQLite version: %s", err.Error())
+	mllog.StdOutf("ws4sql %s", version)
+	if sqliteVersion, err := engines.FLAV_SQLITE.GetVersion(); err != nil {
+		mllog.Fatalf("getting sqlite version: %s", err.Error())
+	} else {
+		mllog.StdOutf("+ sqlite v%s", sqliteVersion)
 	}
-	header = fmt.Sprintf("%s, based on sqlite v%s", header, sqliteVersion)
-	mllog.StdOut(header)
+	if duckDBVersion, err := engines.FLAV_DUCKDB.GetVersion(); err != nil {
+		mllog.Fatalf("getting duckdb version: %s", err.Error())
+	} else {
+		mllog.StdOutf("+ duckdb %s", duckDBVersion)
+	}
 
 	cfg := parseCLI()
 
@@ -71,7 +62,7 @@ func main() {
 }
 
 // A map with the database IDs as key, and the db struct as values.
-var dbs map[string]db
+var dbs map[string]structs.Db
 
 // Fiber app, that serves the web service.
 var app *fiber.App
@@ -79,7 +70,7 @@ var app *fiber.App
 // Actual entry point, called by main() and by the unit tests.
 // Can be called multiple times, but the Fiber app must be
 // terminated (see the Shutdown method in the tests).
-func launch(cfg config, disableKeepAlive4Tests bool) {
+func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 	if len(cfg.Databases) == 0 && cfg.ServeDir == nil {
 		mllog.Fatal("no database nor dir to serve specified")
 	}
@@ -113,7 +104,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		origWhenFatal(msg)
 	}
 
-	dbs = make(map[string]db)
+	dbs = make(map[string]structs.Db)
 	for i := range cfg.Databases {
 		// beware: this variable is NOT modified in-place. Add a cfg.Databases[i] = database at the end, if need be
 		database := ckConfig(cfg.Databases[i])
@@ -123,26 +114,13 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			mllog.Fatalf("id '%s' already specified.", dbId)
 		}
 
-		connString := *database.DatabaseDef.Path
-		var options []string
-		if database.DatabaseDef.ReadOnly {
-			// Several ways to be read-only...
-			options = append(options, "mode=ro", "immutable=1", "_query_only=1")
-		}
-		if !database.DatabaseDef.DisableWALMode {
-			options = append(options, "_journal=WAL")
-		}
-		if len(options) > 0 {
-			connString = connString + "?" + strings.Join(options, "&")
-		}
-
-		mllog.StdOutf("  + Serving database '%s' from %s", dbId, connString)
+		mllog.StdOutf("  + Serving database '%s'", dbId)
 
 		if !*database.DatabaseDef.InMemory && database.ToCreate {
 			mllog.StdOut("  + File not present, it will be created")
 		}
 
-		if !database.DatabaseDef.DisableWALMode {
+		if database.DatabaseDef.DisableWALMode != nil && !*database.DatabaseDef.DisableWALMode {
 			mllog.StdOut("  + Using WAL")
 		}
 
@@ -175,7 +153,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 		}
 
 		// Opens the DB and adds it to the structure
-		dbObj, err := sql.Open("sqlite3", connString)
+		dbObj, err := database.ConnectionGetter()
 		if err != nil {
 			mllog.Fatal(err.Error())
 		}
@@ -215,7 +193,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", dbId)
 		} else if database.Maintenance != nil {
 			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", dbId)
-			database.ScheduledTasks = []scheduledTask{*database.Maintenance}
+			database.ScheduledTasks = []structs.ScheduledTask{*database.Maintenance}
 		}
 		if len(database.ScheduledTasks) > 0 {
 			parseTasks(&database)
@@ -292,7 +270,7 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 	}
 }
 
-func performInitStatements(database db, dbObj *sql.DB, isMemory bool) {
+func performInitStatements(database structs.Db, dbObj *sql.DB, isMemory bool) {
 	// This is implemented in its own method to allow the defer to run ASAP
 
 	// Execute non-concurrently

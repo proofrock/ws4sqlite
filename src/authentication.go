@@ -27,6 +27,8 @@ import (
 	"strings"
 
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/structs"
+	"github.com/proofrock/ws4sql/utils"
 )
 
 const (
@@ -38,11 +40,11 @@ const (
 // Version with explicit credentials, called by the authentication
 // middleware and by the "other" auth function, that accepts
 // a request.
-func applyAuthCreds(db *db, user, password string) error {
+func applyAuthCreds(db *structs.Db, user, password string) error {
 	if db.Auth.ByQuery != "" {
 		// Auth via query. Looks into the database for the credentials;
 		// needs a query that is correctly parametrized.
-		nameds := vals2nameds(map[string]interface{}{"user": user, "password": password})
+		nameds := utils.Vals2nameds(map[string]interface{}{"user": user, "password": password})
 		row := db.DbConn.QueryRowContext(context.Background(), db.Auth.ByQuery, nameds...)
 		var foo interface{}
 		if err := row.Scan(&foo); err == sql.ErrNoRows {
@@ -65,7 +67,7 @@ func applyAuthCreds(db *db, user, password string) error {
 // Checks auth. If auth is granted, returns nil, if not an error.
 // Version with request, extracts the credentials from the request
 // (when authmode = INLINE) and delegates to applyAuthCreds()
-func applyAuth(db *db, req *request) error {
+func applyAuth(db *structs.Db, req *structs.Request) error {
 	if req.Credentials == nil {
 		return errors.New("missing auth credentials")
 	}
@@ -74,7 +76,7 @@ func applyAuth(db *db, req *request) error {
 
 // Parses the authentication configurations. Builds a few structures,
 // should be pretty straightforward to read.
-func parseAuth(db *db) {
+func parseAuth(db *structs.Db) {
 	auth := *db.Auth
 	if strings.ToUpper(auth.Mode) != authModeInline && strings.ToUpper(auth.Mode) != authModeHttp {
 		mllog.Fatal("Auth Mode must be INLINE or HTTP")

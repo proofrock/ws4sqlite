@@ -22,6 +22,8 @@ import (
 	"strings"
 
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/structs"
+	"github.com/proofrock/ws4sql/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -42,7 +44,7 @@ func (i *arrayFlags) Set(value string) error {
 //
 // The config file must then be "completed" by verifying the coherence of the
 // various fields, and generating the pointers to database, mutexes etc.
-func parseCLI() config {
+func parseCLI() structs.Config {
 	// We don't use the "main" flag set because Parse() is not repeatable (for testing)
 	fs := flag.NewFlagSet("ws4sql", flag.ExitOnError)
 
@@ -67,28 +69,28 @@ func parseCLI() config {
 		os.Exit(0)
 	}
 
-	var ret config
+	var ret structs.Config
 
 	if *quickDb != "" {
 		if len(dbFiles) > 0 {
 			mllog.Fatal("--quick-db must be the only database configured, if present")
 		}
 
-		ret.Databases = append(ret.Databases, db{
+		ret.Databases = append(ret.Databases, structs.Db{
 			ConfigFilePath: "quick db setting",
-			DatabaseDef: DatabaseDef{
-				Type: Ptr("SQLITE"),
+			DatabaseDef: structs.DatabaseDef{
+				Type: utils.Ptr("SQLITE"),
 				Path: quickDb,
 			},
 		})
 	} else if len(dbFiles) > 0 {
 		for i := range dbFiles {
-			yamlFile := expandHomeDir(dbFiles[i], "companion file")
+			yamlFile := utils.ExpandHomeDir(dbFiles[i], "companion file")
 
-			var dbConfig db
+			var dbConfig structs.Db
 			dbConfig.ConfigFilePath = yamlFile
 
-			if fileExists(yamlFile) {
+			if utils.FileExists(yamlFile) {
 				cfgData, err := os.ReadFile(yamlFile)
 				if err != nil {
 					mllog.Fatal("in reading config file: ", err.Error())
@@ -110,9 +112,9 @@ func parseCLI() config {
 	if *serveDir != "" {
 		sd := *serveDir
 		// resolves '~'
-		sd = expandHomeDir(sd, "directory to serve")
+		sd = utils.ExpandHomeDir(sd, "directory to serve")
 
-		if !dirExists(sd) {
+		if !utils.DirExists(sd) {
 			mllog.Fatalf("directory to serve does not exist: %s", *serveDir)
 		}
 		ret.ServeDir = &sd

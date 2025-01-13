@@ -20,6 +20,9 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/proofrock/ws4sql/structs"
+	"github.com/proofrock/ws4sql/utils"
 )
 
 // Request Authentication ('INLINE' mode)
@@ -29,28 +32,28 @@ func TestSetupAuthCreds(t *testing.T) {
 	os.Remove("../test/test1.db")
 	os.Remove("../test/test2.db")
 
-	// test0 is not authenticated, test1 has credentials, test2 uses an auth query
+	// test0 is not authenticated, test1 has structs.Credentials, test2 uses an auth query
 	// init statements are also tested here
-	cfg := config{
+	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
-		Databases: []db{
+		Databases: []structs.Db{
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test0"),
-					Path:           Ptr("../test/test0.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test0"),
+					Path:           utils.Ptr("../test/test0.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
 			},
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test1"),
-					Path:           Ptr("../test/test1.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test1"),
+					Path:           utils.Ptr("../test/test1.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
-				Auth: &authr{
+				Auth: &structs.Authr{
 					Mode: "INLINE",
-					ByCredentials: []credentialsCfg{
+					ByCredentials: []structs.CredentialsCfg{
 						{
 							User:     "pietro",
 							Password: "hey",
@@ -63,16 +66,16 @@ func TestSetupAuthCreds(t *testing.T) {
 				},
 			},
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test2"),
-					Path:           Ptr("../test/test2.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test2"),
+					Path:           utils.Ptr("../test/test2.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
 				InitStatements: []string{
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
 				},
-				Auth: &authr{
+				Auth: &structs.Authr{
 					Mode:    "inline", // check if case insensitive
 					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
@@ -85,12 +88,12 @@ func TestSetupAuthCreds(t *testing.T) {
 }
 
 func TestNoAuthButAuthPassed(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "gigi",
 			Password: "ciao",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -106,8 +109,8 @@ func TestNoAuthButAuthPassed(t *testing.T) {
 }
 
 func TestNoAuth1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -123,8 +126,8 @@ func TestNoAuth1(t *testing.T) {
 }
 
 func TestNoAuth2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -140,12 +143,12 @@ func TestNoAuth2(t *testing.T) {
 }
 
 func TestNoAuthWithCreds1(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "piero",
 			Password: "hey",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -161,12 +164,12 @@ func TestNoAuthWithCreds1(t *testing.T) {
 }
 
 func TestNoAuthWithCreds2(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "paolo",
 			Password: "hey",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -182,12 +185,12 @@ func TestNoAuthWithCreds2(t *testing.T) {
 }
 
 func TestAuthWithCreds1(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "pietro",
 			Password: "hey",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -203,12 +206,12 @@ func TestAuthWithCreds1(t *testing.T) {
 }
 
 func TestAuthWithCreds2(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "paolo",
 			Password: "ciao",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -224,12 +227,12 @@ func TestAuthWithCreds2(t *testing.T) {
 }
 
 func TestNoAuthWithQuery1(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "_piero",
 			Password: "hey",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -245,12 +248,12 @@ func TestNoAuthWithQuery1(t *testing.T) {
 }
 
 func TestNoAuthWithQuery2(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "_paolo",
 			Password: "hey",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -266,12 +269,12 @@ func TestNoAuthWithQuery2(t *testing.T) {
 }
 
 func TestAuthWithQuery1(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "_pietro",
 			Password: "hey",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -287,12 +290,12 @@ func TestAuthWithQuery1(t *testing.T) {
 }
 
 func TestAuthWithQuery2(t *testing.T) {
-	req := request{
-		Credentials: &credentials{
+	req := structs.Request{
+		Credentials: &structs.Credentials{
 			User:     "_paolo",
 			Password: "ciao",
 		},
-		Transaction: []requestItem{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -321,21 +324,21 @@ func TestBASetupAuthCreds(t *testing.T) {
 	os.Remove("../test/test1.db")
 	os.Remove("../test/test2.db")
 
-	// test1 has credentials, test2 uses an auth query
+	// test1 has structs.Credentials, test2 uses an auth query
 	// init statements are also tested here
-	cfg := config{
+	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
-		Databases: []db{
+		Databases: []structs.Db{
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test1"),
-					Path:           Ptr("../test/test1.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test1"),
+					Path:           utils.Ptr("../test/test1.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
-				Auth: &authr{
+				Auth: &structs.Authr{
 					Mode: "HTTP",
-					ByCredentials: []credentialsCfg{
+					ByCredentials: []structs.CredentialsCfg{
 						{
 							User:     "pietro",
 							Password: "hey",
@@ -348,16 +351,16 @@ func TestBASetupAuthCreds(t *testing.T) {
 				},
 			},
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test2"),
-					Path:           Ptr("../test/test2.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test2"),
+					Path:           utils.Ptr("../test/test2.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
 				InitStatements: []string{
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
 				},
-				Auth: &authr{
+				Auth: &structs.Authr{
 					Mode:    "http", // check if case insensitive
 					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
@@ -370,8 +373,8 @@ func TestBASetupAuthCreds(t *testing.T) {
 }
 
 func TestBANoAuth1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -387,8 +390,8 @@ func TestBANoAuth1(t *testing.T) {
 }
 
 func TestBANoAuth2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -404,8 +407,8 @@ func TestBANoAuth2(t *testing.T) {
 }
 
 func TestBANoAuthWithCreds1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -421,8 +424,8 @@ func TestBANoAuthWithCreds1(t *testing.T) {
 }
 
 func TestBANoAuthWithCreds2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -438,8 +441,8 @@ func TestBANoAuthWithCreds2(t *testing.T) {
 }
 
 func TestBAAuthWithCreds1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -455,8 +458,8 @@ func TestBAAuthWithCreds1(t *testing.T) {
 }
 
 func TestBAAuthWithCreds2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -472,8 +475,8 @@ func TestBAAuthWithCreds2(t *testing.T) {
 }
 
 func TestBANoAuthWithQuery1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -489,8 +492,8 @@ func TestBANoAuthWithQuery1(t *testing.T) {
 }
 
 func TestBANoAuthWithQuery2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -506,8 +509,8 @@ func TestBANoAuthWithQuery2(t *testing.T) {
 }
 
 func TestBAAuthWithQuery1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -523,8 +526,8 @@ func TestBAAuthWithQuery1(t *testing.T) {
 }
 
 func TestBAAuthWithQuery2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -552,22 +555,22 @@ func TestCustomCodeSetup(t *testing.T) {
 
 	errCode := 444
 
-	// test1 has credentials, test2 uses an auth query
+	// test1 has structs.Credentials, test2 uses an auth query
 	// init statements are also tested here
-	cfg := config{
+	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
-		Databases: []db{
+		Databases: []structs.Db{
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test1"),
-					Path:           Ptr("../test/test1.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test1"),
+					Path:           utils.Ptr("../test/test1.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
-				Auth: &authr{
+				Auth: &structs.Authr{
 					Mode:            "HTTP",
 					CustomErrorCode: &errCode,
-					ByCredentials: []credentialsCfg{
+					ByCredentials: []structs.CredentialsCfg{
 						{
 							User:     "pietro",
 							Password: "hey",
@@ -580,16 +583,16 @@ func TestCustomCodeSetup(t *testing.T) {
 				},
 			},
 			{
-				DatabaseDef: DatabaseDef{
-					Id:             Ptr("test2"),
-					Path:           Ptr("../test/test2.db"),
-					DisableWALMode: true,
+				DatabaseDef: structs.DatabaseDef{
+					Id:             utils.Ptr("test2"),
+					Path:           utils.Ptr("../test/test2.db"),
+					DisableWALMode: utils.Ptr(true),
 				},
 				InitStatements: []string{
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
 				},
-				Auth: &authr{
+				Auth: &structs.Authr{
 					Mode:            "inline", // check if case insensitive
 					CustomErrorCode: &errCode,
 					ByQuery:         "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
@@ -603,8 +606,8 @@ func TestCustomCodeSetup(t *testing.T) {
 }
 
 func TestCustomCodeNoAuth1(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},
@@ -620,8 +623,8 @@ func TestCustomCodeNoAuth1(t *testing.T) {
 }
 
 func TestCustomCodeNoAuth2(t *testing.T) {
-	req := request{
-		Transaction: []requestItem{
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
 			{
 				Query: "SELECT 1",
 			},

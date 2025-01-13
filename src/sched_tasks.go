@@ -28,6 +28,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/structs"
 
 	cronDesc "github.com/lnquy/cron"
 	"github.com/robfig/cron/v3"
@@ -40,7 +41,7 @@ var bkpTimeGlob = strings.Repeat("?", len(bkpTimeFormat))
 
 // Parses a backup plan, checks that it is well-formed and returns a function that
 // will be called by cron and executes the plan.
-func doTask(task scheduledTask) func() {
+func doTask(task structs.ScheduledTask) func() {
 	var bkpDir, bkpFile string
 	if task.DoBackup {
 		var err error
@@ -124,12 +125,12 @@ func doTask(task scheduledTask) func() {
 
 var scheduler = cron.New()
 var haySchedules = false
-var startupTasks = []scheduledTask{}
+var startupTasks = []structs.ScheduledTask{}
 var exprDesc, _ = cronDesc.NewDescriptor()
 
 // Calls the parsing of the scheduled tasks config, via doTask(), and adds the
 // resulting task to be executed by cron
-func parseTasks(db *db) {
+func parseTasks(db *structs.Db) {
 	for idx := range db.ScheduledTasks {
 		db.ScheduledTasks[idx].Db = db // back reference
 		// is there at least one btw schedule and atStartup?
