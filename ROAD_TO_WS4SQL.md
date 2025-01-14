@@ -1,15 +1,18 @@
 The next version of `ws4sqlite` will be called `ws4sql`, because it will support more RDBMs than sqlite.
 
-The version in this branch is a work in progress to slowly add features and (unfortunately) breaking changes; here is a review of what changed compared to `ws4sqlite` "stable" + a migration path.
+The version in this branch is a work in progress to add features and (unfortunately) breaking changes; here is a review of what changed compared to `ws4sqlite` "stable" + a migration path.
 
 # Changes
 
 - SQLite is embedded via [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) and CGO. Should be way faster.
 - Support for DuckDB (see below).
-- Target platforms (because of CGO) are now 6 (`win/amd64`, `macos/amd64`, `macos/arm64`, `linux/amd64`, `linux/arm64`, `linux/arm6`).
+- Target platforms (because of CGO) are now 4 (`win/amd64`, `macos/arm64`, `linux/amd64`, `linux/arm64`).
+  - For Docker, `linux/amd64` and `linux/arm64`.
 - [**BREAKING CHANGE**] When running the app, the config files must be specified on the command line, the file paths cannot be used anymore (there). This is described in the "Migration" section below. The file path is in the config file.
 - The only exception is a "simple case" to serve a file path without any config. This can be done with the new `--quick-db` parameter.
-- Fail fast if the request is empty, don't even attempt to authenticate
+- Fail fast if the request is empty, don't even attempt to authenticate.
+- Docker images are now based on `distroless/static-debian12`.
+- Docker images are now hosted on Github's Container Registry.
 
 # Migration
 

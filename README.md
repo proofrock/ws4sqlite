@@ -77,7 +77,7 @@ Obtaining an answer of
 - [**Embedded web server**](https://germ.gitbook.io/ws4sql/documentation/web-server) to directly serve web pages that can access ws4sql without CORS;
 - Compact codebase;
 - Comprehensive test suite (`make test`);
-- 6 os's/arch's directly supported;
+- 4 os's/arch's directly supported (`linux`, `amd64` and `arm64`; `macos`, `arm64`; `windows`, `amd64`);
 - [**Docker images**](https://germ.gitbook.io/ws4sql/documentation/installation/docker), for amd64, arm and arm64.
 
 # Security Features

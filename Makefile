@@ -18,6 +18,11 @@ build:
 	cd src; go build -trimpath
 	mv src/ws4sql bin/
 
+build-windows:
+	make build-prepare
+	cd src; go build -trimpath
+	mv src/ws4sql.exe bin/
+
 build-static:
 	make build-prepare
 	cd src; go build -trimpath -a -tags="netgo osusergo sqlite_omit_load_extension" -ldflags='-w -extldflags "-static"'

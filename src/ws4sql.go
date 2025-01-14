@@ -38,7 +38,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "ws4sql-v0.17dev3"
+const version = "ws4sql-v0.0.0"
 
 // Simply prints a header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
