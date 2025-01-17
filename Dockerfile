@@ -1,11 +1,11 @@
 # See BUILDING.md
 
-FROM golang:latest as build
+FROM golang:latest AS build
 
 WORKDIR /go/src/app
 COPY . .
 
-RUN make build
+RUN make build-static
 
 # Now copy it into our base image.
 FROM gcr.io/distroless/static-debian12
