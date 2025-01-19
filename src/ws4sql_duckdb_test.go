@@ -1377,3 +1377,64 @@ func TestDDBExoticSuffixes(t *testing.T) {
 
 	Shutdown()
 }
+
+// Test for Issue #50
+func TestDDBJson(t *testing.T) {
+	cfg := structs.Config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []structs.Db{
+			{
+				DatabaseDef: structs.DatabaseDef{
+					Type:     utils.Ptr("DUCKDB"),
+					Id:       utils.Ptr("test"),
+					InMemory: utils.Ptr(true),
+				},
+				InitStatements: []string{
+					"load json",
+				},
+				StoredStatement: []structs.StoredStatement{
+					{
+						Id:  "Q2",
+						Sql: "from read_csv_auto('https://csvbase.com/kinder/list-of-user-agents')",
+					},
+					{
+						Id:  "Q3",
+						Sql: "from read_json_auto('https://api.openalex.org/works/W4388315306')",
+					},
+					{
+						Id:  "Q4",
+						Sql: "install tpch; load tpch; call tpch_queries()",
+					},
+				},
+			},
+		},
+	}
+
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
+			{
+				Query: "#Q2",
+			},
+			{
+				Query: "#Q3",
+			},
+			{
+				Query: "#Q4",
+			},
+		},
+	}
+
+	code, body, _ := call("test", req, t)
+	if code != 200 {
+		t.Errorf("Query failed: %s", body)
+	}
+
+	time.Sleep(time.Second)
+
+	Shutdown()
+}
