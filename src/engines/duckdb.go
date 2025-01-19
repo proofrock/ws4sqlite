@@ -18,10 +18,13 @@ package engines
 
 import (
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/iancoleman/orderedmap"
+	"github.com/marcboeker/go-duckdb"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/proofrock/ws4sql/structs"
 	"github.com/proofrock/ws4sql/utils"
@@ -105,4 +108,47 @@ func (s *duckdbEngine) CheckConfig(dbConfig structs.Db) structs.Db {
 	dbConfig.ConnectionGetter = func() (*sql.DB, error) { return sql.Open("duckdb", connString.String()) }
 
 	return dbConfig
+}
+
+func ddbMapToOrderedMap(m duckdb.Map) (*orderedmap.OrderedMap, error) {
+	ordMap := orderedmap.New()
+
+	for k, v := range m {
+		// Convert key to string
+		var keyStr string
+		switch kv := k.(type) {
+		case string:
+			keyStr = kv
+		case fmt.Stringer:
+			keyStr = kv.String()
+		default:
+			keyStr = fmt.Sprintf("%v", kv)
+		}
+
+		// Handle typical value conversions if needed
+		switch vt := v.(type) {
+		case map[any]any:
+			// Recursive conversion for nested maps
+			convertedMap, err := ddbMapToOrderedMap(vt)
+			if err != nil {
+				return nil, fmt.Errorf("error converting nested map for key %s: %w", keyStr, err)
+			}
+			ordMap.Set(keyStr, convertedMap)
+		default:
+			ordMap.Set(keyStr, v)
+		}
+	}
+
+	return ordMap, nil
+}
+
+// If it's a duckdb.Map (which is a map[any]any but cannot be marshaled by the JSON marshaller)
+// copy it into a orderedmap.OrderedMap
+func (s *duckdbEngine) SanitizeResponseField(fldVal interface{}) (interface{}, error) {
+	switch fldVal := fldVal.(type) {
+	case duckdb.Map:
+		return ddbMapToOrderedMap(fldVal)
+	default:
+		return fldVal, nil
+	}
 }

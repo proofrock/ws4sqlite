@@ -30,6 +30,7 @@ type Engine interface {
 	GetDefaultIsolationLevel() sql.IsolationLevel
 	CheckConfig(dbConfig structs.Db) structs.Db
 	CheckRequest(body structs.Request) *structs.WsError
+	SanitizeResponseField(fldVal interface{}) (interface{}, error)
 }
 
 const ID_SQLITE = "SQLITE"

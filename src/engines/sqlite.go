@@ -103,3 +103,8 @@ func (s *sqliteEngine) CheckConfig(dbConfig structs.Db) structs.Db {
 
 	return dbConfig
 }
+
+// Nothing special to do
+func (s *sqliteEngine) SanitizeResponseField(fldVal interface{}) (interface{}, error) {
+	return fldVal, nil
+}

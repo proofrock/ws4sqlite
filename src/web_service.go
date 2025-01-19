@@ -84,7 +84,7 @@ func reportError(err error, code int, reqIdx int, noFail bool, results []structs
 // Processes a query, and returns a suitable structs.ResponseItem
 //
 // This method is needed to execute properly the defers.
-func processWithResultSet(tx *DBExecutor, query string, isListResultSet bool, params structs.RequestParams) (*structs.ResponseItem, error) {
+func processWithResultSet(tx *DBExecutor, query string, isListResultSet bool, params structs.RequestParams, engine engines.Engine) (*structs.ResponseItem, error) {
 	resultSet := make([]orderedmap.OrderedMap, 0)
 	resultSetList := make([][]interface{}, 0)
 
@@ -113,13 +113,22 @@ func processWithResultSet(tx *DBExecutor, query string, isListResultSet bool, pa
 			return nil, err
 		}
 
+		// Issue #50: for duckdb engine, there may be valkues that are not marshallable,
+		// e.g. duckdb.Map instances. These will be sanitize by the relevant function
+		// in the engine.
+		for i := range values {
+			if value, err := engine.SanitizeResponseField(values[i]); err != nil {
+				return nil, err
+			} else {
+				values[i] = value
+			}
+		}
+
 		if isListResultSet {
 			// List-style result set
-
 			resultSetList = append(resultSetList, values)
 		} else {
 			// Map-style result set
-
 			toAdd := orderedmap.New()
 			for i := range values {
 				toAdd.Set(headers[i], values[i])
@@ -401,7 +410,13 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 				if hasResultSet {
 					// Query
 					// Externalized in a func so that defer rows.Close() actually runs
-					retWR, err := processWithResultSet(&dbExecutor, sqll, isListResultSet, *params)
+					retWR, err := processWithResultSet(
+						&dbExecutor,
+						sqll,
+						isListResultSet,
+						*params,
+						engines.GetFlavorForDb(db),
+					)
 					if err != nil {
 						reportError(err, fiber.StatusInternalServerError, i, txItem.NoFail, ret.Results)
 						continue
