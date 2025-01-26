@@ -6,8 +6,8 @@ on:
       - "v*"
 
 env:
-  GO_VERSION: "1.23.4"
-  REGISTRY_IMAGE: "ghcr.io/proofrock/ws4sql"
+  GO_VERSION: "1.23.5"
+  REGISTRY_IMAGE: "ghcr.io/proofrock/ws4sql_test"
 
 jobs:
   test:
@@ -31,10 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
       - name: Modify version number
         run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
         working-directory: src/
@@ -42,11 +38,17 @@ jobs:
       - name: Build dir generation
         run: mkdir bin/
 
+      - name: Setup Alpine chroot
+        uses: jirutka/setup-alpine@v1
+        with:
+          branch: edge
+
       - name: Compile and Pack Artifact
         run: |
-          make build-static
+          apk add --no-cache musl-dev go g++ git make openssl openssl-dev openssl-libs-static zstd
+          make build-static-linux-musl-amd64
           tar czf bin/ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz -C bin/ ws4sql
-          rm bin/ws4sql
+        shell: alpine.sh --root {0}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -55,7 +57,39 @@ jobs:
           path: bin/ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz
           retention-days: 1
 
-  # TODO build_linux_arm64
+  build_linux_arm64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Modify version number
+        run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
+        working-directory: src/
+
+      - name: Build dir generation
+        run: mkdir bin/
+
+      - name: Setup Alpine chroot
+        uses: jirutka/setup-alpine@v1
+        with:
+          arch: aarch64
+          branch: edge
+
+      - name: Compile and Pack Artifact
+        run: |
+          apk add --no-cache musl-dev go g++ git make openssl openssl-dev openssl-libs-static zstd
+          make build-static-linux-musl-arm64
+          tar czf bin/ws4sql-${{ github.ref_name }}-linux-arm64.tar.gz -C bin/ ws4sql
+        shell: alpine.sh --root {0}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary_linux_arm64
+          path: bin/ws4sql-${{ github.ref_name }}-linux-arm64.tar.gz
+          retention-days: 1
 
   build_macos_arm64:
     runs-on: macos-latest
@@ -122,79 +156,10 @@ jobs:
           path: bin/ws4sql-${{ github.ref_name }}-win-amd64.zip
           retention-days: 1
 
-  release:
+  build_docker:
     needs:
       - build_linux_amd64
-      - build_macos_arm64
-      - build_win_amd64
-      - test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Download artifacts [1/3]
-        uses: actions/download-artifact@v4
-        with:
-          name: binary_linux_amd64
-          path: bin/
-
-      - name: Download artifacts [2/3]
-        uses: actions/download-artifact@v4
-        with:
-          name: binary_macos_arm64
-          path: bin/
-
-      - name: Download artifacts [3/3]
-        uses: actions/download-artifact@v4
-        with:
-          name: binary_win_amd64
-          path: bin/
-
-      - name: Verify Artifact Creation
-        run: ls -lh bin/
-
-      - name: Create Draft Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-        with:
-          body: _replace_me_
-          tag_name: ${{ github.ref_name }}
-          release_name: Version ${{ github.ref_name }}
-          draft: true
-          prerelease: false
-
-      - name: Release Artifact [linux/amd64]
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: bin/ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz
-          asset_name: ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Release Artifact [darwin/arm64]
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: bin/ws4sql-${{ github.ref_name }}-macos-arm64.tar.gz
-          asset_name: ws4sql-${{ github.ref_name }}-macos-arm64.tar.gz
-          asset_content_type: application/zip
-
-      - name: Release Artifact [windows/amd64]
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: bin/ws4sql-${{ github.ref_name }}-win-amd64.zip
-          asset_name: ws4sql-${{ github.ref_name }}-win-amd64.zip
-          asset_content_type: application/zip
-
-  build-docker:
+      - build_linux_arm64
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -207,13 +172,22 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          echo "PLATFORM_PAIR_UNDERSCORE=${platform//\//_}" >> $GITHUB_ENV
 
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Modify version number
-        run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
-        working-directory: src/
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: binary_${{ env.PLATFORM_PAIR_UNDERSCORE }}
+          path: bin/
+
+      - name: Unpack artifact
+        run: |
+          tar xzf *.tar.gz
+          chmod +x ws4sql # Probably unnecessary
+        working-directory: bin/
 
       - name: Docker meta
         id: meta
@@ -257,10 +231,100 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  merge-docker:
+  release:
+    needs:
+      - build_linux_amd64
+      - build_linux_arm64
+      - build_macos_arm64
+      - build_win_amd64
+      - build_docker
+      - test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts [1/4]
+        uses: actions/download-artifact@v4
+        with:
+          name: binary_linux_amd64
+          path: bin/
+
+      - name: Download artifacts [2/4]
+        uses: actions/download-artifact@v4
+        with:
+          name: binary_linux_arm64
+          path: bin/
+
+      - name: Download artifacts [3/4]
+        uses: actions/download-artifact@v4
+        with:
+          name: binary_macos_arm64
+          path: bin/
+
+      - name: Download artifacts [4/4]
+        uses: actions/download-artifact@v4
+        with:
+          name: binary_win_amd64
+          path: bin/
+
+      - name: Verify Artifact Creation
+        run: ls -lh bin/
+
+      - name: Create Draft Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          body: _replace_me_
+          tag_name: ${{ github.ref_name }}
+          release_name: Version ${{ github.ref_name }}
+          draft: true
+          prerelease: false
+
+      - name: Release Artifact [linux/amd64]
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bin/ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz
+          asset_name: ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Release Artifact [linux/arm64]
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bin/ws4sql-${{ github.ref_name }}-linux-arm64.tar.gz
+          asset_name: ws4sql-${{ github.ref_name }}-linux-arm64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Release Artifact [darwin/arm64]
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bin/ws4sql-${{ github.ref_name }}-macos-arm64.tar.gz
+          asset_name: ws4sql-${{ github.ref_name }}-macos-arm64.tar.gz
+          asset_content_type: application/zip
+
+      - name: Release Artifact [windows/amd64]
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: bin/ws4sql-${{ github.ref_name }}-win-amd64.zip
+          asset_name: ws4sql-${{ github.ref_name }}-win-amd64.zip
+          asset_content_type: application/zip
+
+  merge_docker:
     runs-on: ubuntu-latest
     needs:
-      - build-docker
+      - build_docker
       - release
       - test
     steps:

@@ -5,6 +5,7 @@ bin/
 /notes.md
 test/*.db
 test/*.db.wal
+libduckdb_bundle.a
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,macos,linux,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=go,macos,linux,windows
