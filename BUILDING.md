@@ -1,49 +1,39 @@
 # How to build ws4sql
 
-The build system uses `make`. There are two kinds of targets:
+The build system uses `make`.
 
-- "direct" builds, that use go(lang) tooling and [xgo](https://github.com/techknowlogick/xgo) to build a statically or dinamically linked binary or set of binaries;
-- docker image builds, that build docker images.
+## Targets (normal builds)
 
-All linux binaries generated for distribution are statically linked. MacOS and Windows binaries are dynamically linked.
+### `make build-nostatic`
 
-## Direct targets
+Builds a dinamically linked binary under the current architecture/os, in the `bin/` folder.
 
-#### make build
+### `make build-static-linux`
 
-Builds a dinamically linked binary under the current architecture, in the `bin/` folder.
+Builds an almost-statically linked binary for Linux, under the current architecture, in the `bin/` folder.
+It's not fully static, as duckdb is a bit tricky to compile statically. The CI does this using `musl` (see
+below).
 
-#### make build-static
+### `make build-static-windows`
 
-Builds a statically linked binary under the current architecture, in the `bin/` folder.
+Builds a statically linked binary for Windows, under the current architecture, in the `bin/` folder.
 
-#### make dist*:
+### `make build-static-macos`
 
-Builds binaries for the 6 supported OSs/architectures, also creating the distribution archives in
-the `bin/` folder. Uses [xgo](https://github.com/techknowlogick/xgo) for cross compiling.
+Builds a somewhat-statically linked binary for Mac OS, under the current architecture, in the `bin/` folder.
+It's not fully static, as Mac OS doesn't allow statically linking against OS libraries.
 
-It's actually a two-stage process: the first time use `make dist-pre` to setup the environment;
-then `make dist` to build the binaries and package them. Root password required, to re-own the
-files (xgo produces them as root).
+## Targets (CI builds)
 
-## Docker targets
+The Github Actions script (`.github/workflows/main.yml`) compiles the linux binaries fully statically,
+in an Alpine linux chroot, and using a precompiled version of the `libduckdb_bundle.a` that is static and
+platform-independent (`-fPIC`). If you have an Alpine Linux environment, you can use the following targets.
 
-The docker files assume that the `make dist*` stuff described above was performed.
+- `build-static-ci-linux-musl-amd64`
+- `build-static-ci-linux-musl-arm64`
 
-Docker images are based on the `debian:stable-slim` official docker image.
+Required packages are `musl-dev go g++ make openssl openssl-dev openssl-libs-static zstd`.
 
-*NB: buildx must be installed/enabled*
+## Docker
 
-#### make docker
-
-Builds a docker image (tagged `local_ws4sql:latest`) in the current architecture.
-
-#### make docker-multiarch
-
-Builds docker images for AMD64 and ARM64v8. The images are named like the official ones, i.e. 
-`germanorizzo/ws4sql:v0.xx.xx-xxx`.
-
-#### make docker-publish
-#### make docker-devel
-
-Reserved, for publishing in Docker Hub.
+The provided `Dockerfile` assumes that a `ws4sql` static binary is in the `bin/` directory.
