@@ -1,5 +1,6 @@
 src/ws4sql
 bin/
+env/
 .vscode/
 .idea/
 /notes.md

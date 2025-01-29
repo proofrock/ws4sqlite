@@ -31,6 +31,7 @@ type Engine interface {
 	CheckConfig(dbConfig structs.Db) structs.Db
 	CheckRequest(body structs.Request) *structs.WsError
 	SanitizeResponseField(fldVal interface{}) (interface{}, error)
+	DoBackup(task structs.ScheduledTask, fname string, now string) error
 }
 
 const ID_SQLITE = "SQLITE"

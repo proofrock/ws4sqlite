@@ -17,7 +17,9 @@
 package engines
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -107,4 +109,16 @@ func (s *sqliteEngine) CheckConfig(dbConfig structs.Db) structs.Db {
 // Nothing special to do
 func (s *sqliteEngine) SanitizeResponseField(fldVal interface{}) (interface{}, error) {
 	return fldVal, nil
+}
+
+func (s *sqliteEngine) DoBackup(task structs.ScheduledTask, fname string, _ string) error {
+	stat, err := task.Db.DbConn.PrepareContext(context.Background(), "VACUUM INTO ?")
+	if err != nil {
+		return fmt.Errorf("sched. task (backup prep): %s", err.Error())
+	}
+	defer stat.Close()
+	if _, err := stat.Exec(fname); err != nil {
+		return fmt.Errorf("sched. task (backup): %s", err.Error())
+	}
+	return nil
 }

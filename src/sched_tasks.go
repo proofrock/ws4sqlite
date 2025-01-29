@@ -28,6 +28,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	mllog "github.com/proofrock/go-mylittlelogger"
+	"github.com/proofrock/ws4sql/engines"
 	"github.com/proofrock/ws4sql/structs"
 
 	cronDesc "github.com/lnquy/cron"
@@ -37,7 +38,7 @@ import (
 const bkpTimeFormat = "060102-1504"
 
 // Used when deleting older backup files, the date/time is substituted with '?'
-var bkpTimeGlob = strings.Repeat("?", len(bkpTimeFormat))
+const bkpTimeGlob = "??????-????"
 
 // Parses a backup plan, checks that it is well-formed and returns a function that
 // will be called by cron and executes the plan.
@@ -81,7 +82,7 @@ func doTask(task structs.ScheduledTask) func() {
 		task.Db.Mutex.Lock()
 		defer task.Db.Mutex.Unlock()
 
-		if task.DoVacuum {
+		if task.DoVacuum { // SQLite only
 			if _, err := task.Db.DbConn.ExecContext(context.Background(), "VACUUM"); err != nil {
 				mllog.Error("sched. task (vacuum): ", err.Error())
 				return
@@ -91,14 +92,9 @@ func doTask(task structs.ScheduledTask) func() {
 		if task.DoBackup {
 			now := time.Now().Format(bkpTimeFormat)
 			fname := fmt.Sprintf(filepath.Join(bkpDir, bkpFile), now)
-			stat, err := task.Db.DbConn.PrepareContext(context.Background(), "VACUUM INTO ?")
+			err := engines.GetFlavorForDb(*task.Db).DoBackup(task, fname, now)
 			if err != nil {
-				mllog.Error("sched. task (backup prep): ", err.Error())
-				return
-			}
-			defer stat.Close()
-			if _, err := stat.Exec(fname); err != nil {
-				mllog.Error("sched. task (backup): ", err.Error())
+				mllog.Error(err.Error())
 				return
 			}
 			// delete the backup files, except for the last n

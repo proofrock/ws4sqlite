@@ -17,10 +17,13 @@
 package utils
 
 import (
+	"archive/zip"
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -121,4 +124,45 @@ func GetDefault[T any](m orderedmap.OrderedMap, key string) T {
 	}
 
 	return value.(T)
+}
+
+// Zips a folder to a path
+func ZipFolder(srcDir, destZip string) error {
+	zipFile, err := os.Create(destZip)
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		relPath, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		zipEntry, err := zipWriter.Create(relPath)
+		if err != nil {
+			return err
+		}
+
+		_, err = io.Copy(zipEntry, file)
+		return err
+	})
 }

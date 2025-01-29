@@ -10,7 +10,7 @@ upd-libraries:
 	cd src; go mod tidy
 	
 test:
-	cd src; go test -v -timeout 6m
+	cd src; go test -v -timeout 8m
 
 build-prepare:
 	make cleanup

@@ -17,8 +17,10 @@
 package engines
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -151,4 +153,25 @@ func (s *duckdbEngine) SanitizeResponseField(fldVal interface{}) (interface{}, e
 	default:
 		return fldVal, nil
 	}
+}
+
+// Saves a backup to a temporary folder and zips it
+func (s *duckdbEngine) DoBackup(task structs.ScheduledTask, fname string, now string) error {
+	tempDir, err := os.MkdirTemp("", fmt.Sprintf("duckdb_backup_%s_%s", *task.Db.DatabaseDef.Id, now))
+	if err != nil {
+		return fmt.Errorf("sched. task (backup prep): %w", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after function returns
+
+	backupPath := strings.ReplaceAll(filepath.Join(tempDir, "backup"), "'", "''")
+	_, err = task.Db.DbConn.ExecContext(context.Background(), fmt.Sprintf("EXPORT DATABASE '%s' (FORMAT CSV)", backupPath))
+	if err != nil {
+		return fmt.Errorf("sched. task (backup): %w", err)
+	}
+
+	if err := utils.ZipFolder(backupPath, fname); err != nil {
+		return fmt.Errorf("sched. task (backup zip): %w", err)
+	}
+
+	return nil
 }

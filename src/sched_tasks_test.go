@@ -156,6 +156,110 @@ func TestSchedTasks(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
+// For DuckDB. Two minutes too.
+func TestDDBSchedTasks(t *testing.T) {
+	defer os.Remove("../test/test1.zip")
+	defer os.Remove("../test/test2.zip")
+	defer Shutdown()
+
+	sched := "* * * * *"
+
+	cfg := structs.Config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []structs.Db{
+			{
+				DatabaseDef: structs.DatabaseDef{
+					Type: utils.Ptr("DUCKDB"),
+					Id:   utils.Ptr("test1"),
+					Path: utils.Ptr("../test/test1.db"),
+				},
+				Maintenance: &structs.ScheduledTask{
+					Schedule:       &sched,
+					DoVacuum:       false,
+					DoBackup:       true,
+					BackupTemplate: "../test/test1_%s.zip",
+					NumFiles:       1,
+				},
+			}, {
+				DatabaseDef: structs.DatabaseDef{
+					Type: utils.Ptr("DUCKDB"),
+					Id:   utils.Ptr("test2"),
+					Path: utils.Ptr("../test/test2.db"),
+				},
+				Maintenance: &structs.ScheduledTask{
+					Schedule:       &sched,
+					DoVacuum:       false,
+					DoBackup:       true,
+					BackupTemplate: "../test/test2_%s.zip",
+					NumFiles:       1,
+				},
+			},
+		},
+	}
+
+	cleanSchedTasksFiles(cfg)
+	defer cleanSchedTasksFiles(cfg)
+
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	if !utils.FileExists(*cfg.Databases[0].DatabaseDef.Path) || !utils.FileExists(*cfg.Databases[1].DatabaseDef.Path) {
+		t.Error("db file not created")
+		return
+	}
+
+	req := structs.Request{
+		Transaction: []structs.RequestItem{
+			{
+				Statement: "CREATE TABLE T1 (ID INT PRIMARY KEY, VAL TEXT NOT NULL)",
+			},
+		},
+	}
+	code, _, _ := call("test1", req, t)
+	if code != 200 {
+		t.Error("did not succeed")
+		return
+	}
+
+	time.Sleep(time.Minute)
+
+	now := time.Now().Format(bkpTimeFormat)
+	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
+	bk2 := fmt.Sprintf(cfg.Databases[1].Maintenance.BackupTemplate, now)
+
+	if !utils.FileExists(bk1) || !utils.FileExists(bk2) {
+		t.Error("backup file not created")
+		return
+	}
+
+	stat1, _ := os.Stat(bk1)
+	stat2, _ := os.Stat(bk2)
+
+	if stat2.Size() >= stat1.Size() {
+		t.Error("backup files sizes are inconsistent")
+	}
+
+	time.Sleep(time.Minute)
+
+	now = time.Now().Format(bkpTimeFormat)
+	bk3 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
+	bk4 := fmt.Sprintf(cfg.Databases[1].Maintenance.BackupTemplate, now)
+
+	if !utils.FileExists(bk3) || !utils.FileExists(bk4) {
+		t.Error("backup file not created, the second time")
+		return
+	}
+
+	if utils.FileExists(bk1) || utils.FileExists(bk2) {
+		t.Error("backup file not rotated")
+		return
+	}
+
+	time.Sleep(time.Second)
+}
+
 // Takes one minute
 func TestSchedTasksWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
