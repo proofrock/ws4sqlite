@@ -7,7 +7,7 @@ on:
 
 env:
   GO_VERSION: "1.23.5"
-  REGISTRY_IMAGE: "ghcr.io/proofrock/ws4sql_test"
+  REGISTRY_IMAGE: "ghcr.io/proofrock/ws4sql"
 
 jobs:
   test:
