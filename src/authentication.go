@@ -19,9 +19,7 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -29,12 +27,24 @@ import (
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/proofrock/ws4sql/structs"
 	"github.com/proofrock/ws4sql/utils"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const (
 	authModeInline = "INLINE"
 	authModeHttp   = "HTTP"
 )
+
+// Finds the user in the credentials
+func findCred(db *structs.Db, user string) *structs.CredentialsCfg {
+	for i := range db.Auth.ByCredentials {
+		cred := &db.Auth.ByCredentials[i] // don't want to copy the struct
+		if cred.User == user {
+			return cred
+		}
+	}
+	return nil
+}
 
 // Checks auth. If auth is granted, returns nil, if not an error.
 // Version with explicit credentials, called by the authentication
@@ -55,13 +65,25 @@ func applyAuthCreds(db *structs.Db, user, password string) error {
 			return nil
 		}
 	} else {
-		passedSHA := sha256.Sum256([]byte(password))
-		expectedSHA, ok := db.Auth.HashedCreds[user]
-		if !ok || !bytes.Equal(expectedSHA, passedSHA[:]) {
+		cred := findCred(db, user) // O(n) but n is small
+		if cred == nil {
 			return errors.New("wrong credentials")
 		}
+		cachedPwd := cred.ClearTextPassword.Load()
+		pwdBytes := []byte(password)
+		if cachedPwd != nil {
+			if bytes.Equal(pwdBytes, cachedPwd.([]byte)) {
+				return nil
+			} else {
+				return errors.New("wrong credentials")
+			}
+		}
+		if bcrypt.CompareHashAndPassword([]byte(cred.HashedPassword), []byte(password)) == nil {
+			cred.ClearTextPassword.Store(pwdBytes)
+			return nil
+		}
+		return errors.New("wrong credentials")
 	}
-	return nil
 }
 
 // Checks auth. If auth is granted, returns nil, if not an error.
@@ -92,30 +114,23 @@ func parseAuth(db *structs.Db) {
 		}
 		mllog.StdOut("  + Authentication enabled, with query")
 	} else {
-		(*db).Auth.HashedCreds = make(map[string][]byte)
 		for i := range auth.ByCredentials {
-			if auth.ByCredentials[i].User == "" {
+			cred := &auth.ByCredentials[i] // don't want to copy the struct
+			if cred.User == "" {
 				mllog.Fatal("no user for credential")
 			}
-			var b []byte
-			if (auth.ByCredentials[i].HashedPassword == "") == (auth.ByCredentials[i].Password == "") {
+			if (cred.HashedPassword == "") == (cred.Password == "") {
 				mllog.Fatal("one and only one of 'password' and 'hashedPassword' must be specified")
 			}
-			// Converts all the password to hashes, if they weren't passed as hashes in the
-			// first place. For uniformity and (vaguely) security.
-			if auth.ByCredentials[i].HashedPassword != "" {
-				var err error
-				b, err = hex.DecodeString(auth.ByCredentials[i].HashedPassword)
-				if err != nil || len(b) != 32 {
-					mllog.Fatalf("for db '%s', hashedPassword doesn't seem to be SHA256/hex.", *db.DatabaseDef.Id)
-				}
-			} else {
-				bytes32 := sha256.Sum256([]byte(auth.ByCredentials[i].Password))
-				b = bytes32[:]
+			// Populates the cleartext password cache, so that there is only one
+			// point where the password is stored in clear text.
+			// If the password is specified as a BCrypt hash, it will be cached
+			// when the BCrypt "puzzle" is solved for the first time.
+			if cred.Password != "" {
+				cred.ClearTextPassword.Store([]byte(cred.Password))
 			}
-			(*db).Auth.HashedCreds[auth.ByCredentials[i].User] = b
 		}
-		mllog.StdOutf("  + Authentication enabled, with %d credentials", len((*db).Auth.HashedCreds))
+		mllog.StdOutf("  + Authentication enabled, with %d credentials", len(auth.ByCredentials))
 	}
 
 	if auth.CustomErrorCode != nil {

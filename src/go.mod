@@ -14,6 +14,7 @@ require (
 	github.com/proofrock/go-mylittlelogger v0.4.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wI2L/jettison v0.7.4
+	golang.org/x/crypto v0.33.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

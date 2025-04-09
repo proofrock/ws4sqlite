@@ -19,6 +19,7 @@ package structs
 import (
 	"database/sql"
 	"sync"
+	"sync/atomic"
 )
 
 // These are for parsing the config file (from YAML)
@@ -39,14 +40,17 @@ type CredentialsCfg struct {
 	User           string `yaml:"user"`
 	Password       string `yaml:"password"`
 	HashedPassword string `yaml:"hashedPassword"`
+	// This is a cache: it's the Password if specified in cleartext, or
+	// gets populated with the cleartext password when the hashed one is
+	// checked.
+	ClearTextPassword atomic.Value
 }
 
-type Authr struct {
+type Auth struct {
 	Mode            string           `yaml:"mode"` // 'INLINE' or 'HTTP'
 	CustomErrorCode *int             `yaml:"customErrorCode"`
 	ByQuery         string           `yaml:"byQuery"`
 	ByCredentials   []CredentialsCfg `yaml:"byCredentials"`
-	HashedCreds     map[string][]byte
 }
 
 type StoredStatement struct {
@@ -66,7 +70,7 @@ type DatabaseDef struct {
 type Db struct {
 	ConfigFilePath          string
 	DatabaseDef             DatabaseDef       `yaml:"database"`
-	Auth                    *Authr            `yaml:"auth"`
+	Auth                    *Auth             `yaml:"auth"`
 	CORSOrigin              string            `yaml:"corsOrigin"`
 	UseOnlyStoredStatements bool              `yaml:"useOnlyStoredStatements"`
 	Maintenance             *ScheduledTask    `yaml:"maintenance"`

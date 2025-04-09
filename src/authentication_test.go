@@ -51,7 +51,7 @@ func TestSetupAuthCreds(t *testing.T) {
 					Path:           utils.Ptr("../test/test1.db"),
 					DisableWALMode: utils.Ptr(true),
 				},
-				Auth: &structs.Authr{
+				Auth: &structs.Auth{
 					Mode: "INLINE",
 					ByCredentials: []structs.CredentialsCfg{
 						{
@@ -60,7 +60,7 @@ func TestSetupAuthCreds(t *testing.T) {
 						},
 						{
 							User:           "paolo",
-							HashedPassword: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
+							HashedPassword: "$2a$10$r4UdAVQ9SroqwTEX3tGCDO3coSFQSEp7QINiSwYb5ARhD7wkTPYtS", // "ciao"
 						},
 					},
 				},
@@ -75,7 +75,7 @@ func TestSetupAuthCreds(t *testing.T) {
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
 				},
-				Auth: &structs.Authr{
+				Auth: &structs.Auth{
 					Mode:    "inline", // check if case insensitive
 					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
@@ -224,6 +224,14 @@ func TestAuthWithCreds2(t *testing.T) {
 		t.Errorf("did not succeed, but should have: %s", body)
 		return
 	}
+
+	// Second time it should use the cached password
+	code, body, _ = call("test1", req, t)
+
+	if code != 200 {
+		t.Errorf("did not succeed, but should have: %s", body)
+		return
+	}
 }
 
 func TestNoAuthWithQuery1(t *testing.T) {
@@ -336,7 +344,7 @@ func TestBASetupAuthCreds(t *testing.T) {
 					Path:           utils.Ptr("../test/test1.db"),
 					DisableWALMode: utils.Ptr(true),
 				},
-				Auth: &structs.Authr{
+				Auth: &structs.Auth{
 					Mode: "HTTP",
 					ByCredentials: []structs.CredentialsCfg{
 						{
@@ -345,7 +353,7 @@ func TestBASetupAuthCreds(t *testing.T) {
 						},
 						{
 							User:           "paolo",
-							HashedPassword: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
+							HashedPassword: "$2a$10$r4UdAVQ9SroqwTEX3tGCDO3coSFQSEp7QINiSwYb5ARhD7wkTPYtS", // "ciao"
 						},
 					},
 				},
@@ -360,7 +368,7 @@ func TestBASetupAuthCreds(t *testing.T) {
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
 				},
-				Auth: &structs.Authr{
+				Auth: &structs.Auth{
 					Mode:    "http", // check if case insensitive
 					ByQuery: "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
@@ -567,7 +575,7 @@ func TestCustomCodeSetup(t *testing.T) {
 					Path:           utils.Ptr("../test/test1.db"),
 					DisableWALMode: utils.Ptr(true),
 				},
-				Auth: &structs.Authr{
+				Auth: &structs.Auth{
 					Mode:            "HTTP",
 					CustomErrorCode: &errCode,
 					ByCredentials: []structs.CredentialsCfg{
@@ -577,7 +585,7 @@ func TestCustomCodeSetup(t *testing.T) {
 						},
 						{
 							User:           "paolo",
-							HashedPassword: "b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2", // "ciao"
+							HashedPassword: "$2a$10$r4UdAVQ9SroqwTEX3tGCDO3coSFQSEp7QINiSwYb5ARhD7wkTPYtS", // "ciao"
 						},
 					},
 				},
@@ -592,7 +600,7 @@ func TestCustomCodeSetup(t *testing.T) {
 					"CREATE TABLE AUTH (USER TEXT PRIMARY KEY, PASS TEXT)",
 					"INSERT INTO AUTH VALUES ('_pietro', 'hey'), ('_paolo', 'ciao')",
 				},
-				Auth: &structs.Authr{
+				Auth: &structs.Auth{
 					Mode:            "inline", // check if case insensitive
 					CustomErrorCode: &errCode,
 					ByQuery:         "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
