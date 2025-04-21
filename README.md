@@ -1,8 +1,8 @@
 # 🌱 ws4sqlite
 
-> *📢 This project's next version was forked, that will support more databases than sqlite (hence the new name, if you noticed 😉). It will take some time, through improvements and, alas, breaking changes. The development is happening in the [`fork/ws4sql`](https://github.com/proofrock/ws4sqlite/tree/fork/ws4sql) branch, and you can find the changes and the steps needed to migrate a regular installation in the [ROAD_TO_WS4SQL.md](https://github.com/proofrock/ws4sqlite/blob/fork/ws4sql/ROAD_TO_WS4SQL.md) document.*
+> _A bit of status report. The `ws4sql` [fork](https://github.com/proofrock/ws4sqlite/tree/fork/ws4sql) (to integrate `duckdb` alongside `sqlite`) is unfortunately stuck, because I cannot get the new 1.2.0 duckdb version to compile statically as the old version used to. Also unfortunately, in the last year or so my time is severely limited, and I am not able to dedicate personal resources to this project. So any hiccup (as the one I described) becomes a major showstopper. 😒 I am sorry about the situation, I will continue maintaining this branch and attempting to go on with the other, too._
 
-> I recently started a [discussion](https://github.com/proofrock/ws4sqlite/discussions/44) over the future direction for this project. Take a look, and chip in if you want!
+> _If you find this project useful, and can help, please let me know. I could use some help right now 😊._
 
 **`ws4sqlite`** is a server application that, applied to one or more sqlite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
 
