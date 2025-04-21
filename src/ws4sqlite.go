@@ -40,10 +40,10 @@ const version = "v0.0.0"
 
 func getSQLiteVersion() (string, error) {
 	dbObj, err := sql.Open("sqlite", ":memory:")
-	defer dbObj.Close()
 	if err != nil {
 		return "", err
 	}
+	defer dbObj.Close()
 	row := dbObj.QueryRow("SELECT sqlite_version()")
 	var ver string
 	err = row.Scan(&ver)

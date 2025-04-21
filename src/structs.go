@@ -37,8 +37,12 @@ func (m wsError) Error() string {
 	return m.Msg
 }
 
-func newWSError(reqIdx int, code int, msg string, elements ...interface{}) wsError {
+func newWSErrorf(reqIdx int, code int, msg string, elements ...interface{}) wsError {
 	return wsError{reqIdx, fmt.Sprintf(msg, elements...), code}
+}
+
+func newWSError(reqIdx int, code int, msg string) wsError {
+	return wsError{reqIdx, msg, code}
 }
 
 // These are for parsing the config file (from YAML)

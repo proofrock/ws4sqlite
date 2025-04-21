@@ -196,14 +196,14 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		var body request
 		if err := c.BodyParser(&body); err != nil {
-			return newWSError(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
+			return newWSErrorf(-1, fiber.StatusBadRequest, "in parsing body: %s", err.Error())
 		}
 
 		isListResultSet := body.ResultFormat != nil && strings.EqualFold(*body.ResultFormat, "list")
 
 		db, found := dbs[databaseId]
 		if !found {
-			return newWSError(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
+			return newWSErrorf(-1, fiber.StatusNotFound, "database with ID '%s' not found", databaseId)
 		}
 
 		// Execute non-concurrently
