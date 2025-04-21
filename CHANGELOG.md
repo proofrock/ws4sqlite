@@ -1,3 +1,10 @@
+## v0.16.4
+*2025-04-21, Venice*
+
+- SQLite 3.49.1
+- Library updates
+- Fixes for linter warnings
+
 ## v0.16.3
 *2024-11-13, Venice*
 
