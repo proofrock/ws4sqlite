@@ -1,6 +1,6 @@
 # 🌱 ws4sql
 
-> I recently started a [discussion](https://github.com/proofrock/ws4sql/discussions/44) over the future direction for this project. Take a look, and chip in if you want!
+> There is a [discussion](https://github.com/proofrock/ws4sql/discussions/44) over the future direction for this project. Take a look, and chip in if you want!
 
 **`ws4sql`** is a server application that, applied to one or more database files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP). It supports SQLite and DuckDB.
 
