@@ -26,7 +26,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/iancoleman/orderedmap"
-	"github.com/marcboeker/go-duckdb"
+	"github.com/marcboeker/go-duckdb/v2"
 	mllog "github.com/proofrock/go-mylittlelogger"
 	"github.com/proofrock/ws4sql/structs"
 	"github.com/proofrock/ws4sql/utils"

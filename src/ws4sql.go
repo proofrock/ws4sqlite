@@ -34,7 +34,7 @@ import (
 	"github.com/wI2L/jettison"
 
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	_ "github.com/marcboeker/go-duckdb"
+	_ "github.com/marcboeker/go-duckdb/v2"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -73,6 +73,7 @@ var app *fiber.App
 func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 	if len(cfg.Databases) == 0 && cfg.ServeDir == nil {
 		mllog.Fatal("no database nor dir to serve specified")
+		return
 	}
 
 	// Let's create the web server
@@ -112,6 +113,7 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 
 		if _, ok := dbs[dbId]; ok {
 			mllog.Fatalf("id '%s' already specified.", dbId)
+			return
 		}
 
 		mllog.StdOutf("  + Serving database '%s'", dbId)
@@ -142,6 +144,7 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 			ss := database.StoredStatement[j]
 			if ss.Id == "" || ss.Sql == "" {
 				mllog.Fatalf("no ID or SQL specified for stored statement #%d in database '%s'", j, dbId)
+				return
 			}
 			database.StoredStatsMap[ss.Id] = ss.Sql
 		}
@@ -150,12 +153,14 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 			mllog.StdOutf("  + With %d stored statements", len(database.StoredStatsMap))
 		} else if database.UseOnlyStoredStatements {
 			mllog.Fatalf("for db '%s', specified to use only stored statements but no one is provided", dbId)
+			return
 		}
 
 		// Opens the DB and adds it to the structure
 		dbObj, err := database.ConnectionGetter()
 		if err != nil {
 			mllog.Fatal(err.Error())
+			return
 		}
 		// This method returns when the application exits. As per https://github.com/mattn/go-sqlite3/issues/1008,
 		// it's not necessary to Close() the _db. The file remains consistent, and the pointers and locks are freed,
@@ -165,6 +170,7 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 		// and report general errors as soon as possible.
 		if _, err := dbObj.Exec("SELECT 1"); err != nil {
 			mllog.Fatalf("accessing the database '%s': %s", dbId, err.Error())
+			return
 		}
 
 		// If this cycle will fail, I will have to clean up the created files
@@ -180,6 +186,7 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 		database.DbConn, err = dbObj.Conn(context.Background())
 		if err != nil {
 			mllog.Fatalf("in opening connection to %s: %s", dbId, err.Error())
+			return
 		}
 
 		// Parsing of the authentication
@@ -191,6 +198,7 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 		// FIXME Fail if readonly?
 		if database.Maintenance != nil && len(database.ScheduledTasks) > 0 {
 			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", dbId)
+			return
 		} else if database.Maintenance != nil {
 			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", dbId)
 			database.ScheduledTasks = []structs.ScheduledTask{*database.Maintenance}

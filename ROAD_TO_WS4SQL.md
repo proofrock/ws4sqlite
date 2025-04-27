@@ -36,6 +36,7 @@ database:
 ## Specific to DuckDB
 
 - `noFail` is not supported.
+- Accessing the same file from two different connections is not supported
 - Placeholders for named parameters are `$VAL`, not `:VAL` as in SQLite.
 - As DuckDB does not support read-only transactions, when `readOnly` is specified the requests won't be processed in a transaction.
 - Duckdb exports backups in a folder. A backup is performed by exporting to a temp folder and zipping it. CSV format is used (`EXPORT DATABASE '...' (FORMAT CSV)`).

@@ -970,7 +970,7 @@ func TestDDB_CreateWithQuestionMark(t *testing.T) {
 	}
 }
 
-func TestDDBTwoServesOneDb(t *testing.T) {
+func TestDDBTwoServesOneDbFails(t *testing.T) {
 	defer Shutdown()
 	defer os.Remove("../test/test.db")
 	defer os.Remove("../test/test.wal")
@@ -1001,48 +1001,18 @@ func TestDDBTwoServesOneDb(t *testing.T) {
 		},
 	}
 
-	go launch(cfg, true)
+	// it should fail. But there must be a better way to test for failure :-D
 
-	time.Sleep(time.Second)
-
-	req1 := structs.Request{
-		Transaction: []structs.RequestItem{
-			{
-				Statement: "INSERT INTO T VALUES (25)",
-			},
-		},
+	guard := false
+	origWhenFatal := mllog.WhenFatal
+	mllog.WhenFatal = func(msg string) {
+		guard = true
 	}
-	req2 := structs.Request{
-		Transaction: []structs.RequestItem{
-			{
-				Query: "SELECT COUNT(1) FROM T",
-			},
-		},
+	launch(cfg, true)
+	mllog.WhenFatal = origWhenFatal
+	if !guard {
+		t.Fail()
 	}
-
-	wg := new(sync.WaitGroup)
-	wg.Add(concurrency * 2)
-
-	for i := 0; i < concurrency; i++ {
-		go func(t *testing.T) {
-			defer wg.Done()
-			code, body, _ := call("test1", req1, t)
-			if code != 200 {
-				t.Error("INSERT failed", body)
-			}
-		}(t)
-		go func(t *testing.T) {
-			defer wg.Done()
-			code, body, _ := call("test2", req2, t)
-			if code != 200 {
-				t.Error("SELECT failed", body)
-			}
-		}(t)
-	}
-
-	wg.Wait()
-
-	time.Sleep(time.Second)
 }
 
 // // Test about the various field of a ResponseItem being null
@@ -1400,7 +1370,7 @@ func TestDDBJson(t *testing.T) {
 					},
 					{
 						Id:  "Q3",
-						Sql: "from read_json_auto('https://api.openalex.org/works/W4388315306')",
+						Sql: "from read_json_auto('https://microsoftedge.github.io/Demos/json-dummy-data/64KB.json')",
 					},
 					{
 						Id:  "Q4",
