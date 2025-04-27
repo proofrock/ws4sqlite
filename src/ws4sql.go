@@ -44,7 +44,14 @@ const version = "v0.0.0"
 // launch(), that is the real entry point. It's separate from the
 // main method because launch() is called by the unit tests.
 func main() {
-	mllog.StdOutf("ws4sql %s", version)
+	// https://manytools.org/hacker-tools/ascii-banner/, profile "Slant"
+	mllog.StdOut("                __ __             __")
+	mllog.StdOut(" _      _______/ // / _________ _/ /")
+	mllog.StdOut("| | /| / / ___/ // /_/ ___/ __ `/ /")
+	mllog.StdOut("| |/ |/ (__  )__  __(__  ) /_/ / /")
+	mllog.StdOut("|__/|__/____/  /_/ /____/\\__, /_/")
+	mllog.StdOut("                           /_/ " + version)
+
 	if sqliteVersion, err := engines.FLAV_SQLITE.GetVersion(); err != nil {
 		mllog.Fatalf("getting sqlite version: %s", err.Error())
 	} else {
