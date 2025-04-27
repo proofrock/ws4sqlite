@@ -6,8 +6,9 @@ on:
       - "v*"
 
 env:
-  GO_VERSION: "1.23.5"
+  GO_VERSION: "1.24.2"
   REGISTRY_IMAGE: "ghcr.io/proofrock/ws4sql"
+  VERSION: ${{ github.ref_name }}
 
 jobs:
   test:
@@ -31,10 +32,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Modify version number
-        run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
-        working-directory: src/
-
       - name: Build dir generation
         run: mkdir bin/
 
@@ -45,7 +42,7 @@ jobs:
 
       - name: Compile and Pack Artifact
         run: |
-          apk add --no-cache musl-dev go g++ git make openssl openssl-dev openssl-libs-static zstd
+          apk add --no-cache musl-dev go g++ git make openssl openssl-dev openssl-libs-static zstd bash
           make build-static-ci-linux-musl-amd64
           tar czf bin/ws4sql-${{ github.ref_name }}-linux-amd64.tar.gz -C bin/ ws4sql
         shell: alpine.sh --root {0}
@@ -64,10 +61,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Modify version number
-        run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
-        working-directory: src/
-
       - name: Build dir generation
         run: mkdir bin/
 
@@ -79,7 +72,7 @@ jobs:
 
       - name: Compile and Pack Artifact
         run: |
-          apk add --no-cache musl-dev go g++ git make openssl openssl-dev openssl-libs-static zstd
+          apk add --no-cache musl-dev go g++ git make openssl openssl-dev openssl-libs-static zstd bash
           make build-static-ci-linux-musl-arm64
           tar czf bin/ws4sql-${{ github.ref_name }}-linux-arm64.tar.gz -C bin/ ws4sql
         shell: alpine.sh --root {0}
@@ -101,10 +94,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Modify version number
-        run: sed -i.bkp 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
-        working-directory: src/
 
       - name: Build dir generation
         run: mkdir bin/
@@ -133,10 +122,6 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Modify version number
-        run: sed -i.bkp 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
-        working-directory: src/
-
       - name: Build dir generation
         run: mkdir bin/
 
@@ -163,10 +148,6 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-
-      - name: Modify version number
-        run: sed -i 's/v0\.0\.0/${{ github.ref_name }}/g' ws4sql.go
-        working-directory: src/
 
       - name: Build dir generation
         run: mkdir bin/

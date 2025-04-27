@@ -38,7 +38,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const version = "v0.0.0"
+var version string // Set at build time, var VERSION
 
 // Simply prints a header, parses the cli parameters and calls
 // launch(), that is the real entry point. It's separate from the
