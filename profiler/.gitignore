@@ -1,3 +1,4 @@
 environment/*db*
 *.class
 ws4sqlite*
+ws4sql*
