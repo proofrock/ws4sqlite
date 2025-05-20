@@ -6,9 +6,8 @@
 ws4sql 
     --bind-host 0.0.0.0 \        # Optional
     --port 12321 \               # Optional
-    --db ~/file1.db \            # File-based db, cfg at ~/file1.yaml
-    --mem-db mem1:~/mem1.yaml \  # Memory-based db, with cfg
-    --mem-db mem2 \              # Memory-based db, with default cfg
+    --db ~/file1.yaml \          # Configuration file/pointer for a db
+    --quick-db myFile.db \       # Single-file SQLite db, without configuration
     --serve-dir myDir            # Serve static resources from a filesystem directory
 ```
 
