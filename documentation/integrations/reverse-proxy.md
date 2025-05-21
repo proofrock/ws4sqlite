@@ -15,11 +15,9 @@ To access ws4sql from `https://sqlite.test.com`:
 3. Launch caddy:\
    `sudo caddy reverse-proxy --from sqlite.test.com --to localhost:12321`
 
-{% hint style="danger" %}
-You'll need to launch caddy with root/admin privileges, as it must access privileged ports.
-{% endhint %}
+> ⚠️ You'll need to launch caddy with root/admin privileges, as it must access privileged ports.
 
-### NGINX
+### NGINX/Swag
 
 NGINX is quite complex to configure, and it's beyond the scope of this document. Usually, we make use of [LinuxServer's Swag](https://docs.linuxserver.io/general/swag) Docker image, paired with ws4sql's own docker image. The relevant config is in `nginx/site-confs/default`:
 

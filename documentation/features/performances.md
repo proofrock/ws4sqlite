@@ -1,8 +1,6 @@
 # 🚄 Performances
 
-{% hint style="warning" %}
-This page is quite outdated. New, more complete measurements are needed. Help appreciated ;-)
-{% endhint %}
+> ❌ This page is quite outdated. New, more complete measurements are needed. Help appreciated ;-)
 
 ws4sqlite v0.9.1 with Apache JMeter. Debian Linux system, Azure Standard B2s (2 vcpus).
 

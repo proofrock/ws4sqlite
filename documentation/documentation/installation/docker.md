@@ -1,7 +1,6 @@
 # 🐳 Docker
 
-ws4sql provides a standard Docker image, based on distroless/static-debian11. It's a multiarch image for amd64, 
-ARM/v7 and ARM64/v8.
+ws4sql provides a standard Docker image, based on distroless/static-debian12. It's a multiarch image for amd64 and aarch64/arm64.
 
 Here are the relevant configurations:
 
@@ -22,7 +21,7 @@ docker run -d \
  -v /mnt/DockerHome/myDir:/data \
  --user 1000:1001 \
  -e TZ=Europe/Rome \
- germanorizzo/ws4sqlite:latest \
+ ghcr.io/proofrock/ws4sql:latest \
  --db /data/testDb.db
 ```
 
@@ -40,7 +39,7 @@ The rest of the lines in this example are standard Docker.
 
 * It's important to use `--user`, otherwise ws4sql will start with root privileges! You don't want this, as it 
   creates files; for example, backups may potentially overwrite some file or wreak havoc in unpredictable ways (which 
-  are actually very predictable, but only after they happen).
+  will actually be _very_ predictable, but only after they happen).
 
 #### Caveats
 

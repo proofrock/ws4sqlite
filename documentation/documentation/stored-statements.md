@@ -2,7 +2,9 @@
 
 As stated while discussing the [configuration file](configuration-file.md#storedqueries-lines-26-30-and-useonlystoredqueries-line-25), Stored Statements are a way to specify (some of) the statement/queries you will use in the server instead of sending them over from the client.
 
-This can be done to shorten the requests from the client; a more important reason is for security: when coupled with the next parameter, this allows the server to actually limit the SQL tat is performed to a set of predefined, controlled values. If your db contains areas that are sensitive, and you don't want to expose them, this can be very effective. See also the [relevant section](../security.md#stored-queries-to-prevent-sql-injection).
+This can be done to shorten the requests from the client; a more important reason is security: when coupled with the `useOnlyStoredStatements` parameter, this allows the server to actually limit the SQL that is performed to a set of predefined, controlled values. If your db contains areas that are sensitive, and you don't want to expose them, this can be very effective. See also the [relevant section](../security.md#stored-queries-to-prevent-sql-injection).
+
+> ℹ️ Of course it's not limited to statements, but also queries works the same. "Statement" is just used in a generic sense here.
 
 #### Configuration
 
@@ -31,8 +33,6 @@ Simply specify the ID, prepended by a `#` sign, instead of any SQL:
     ]
 }
 ```
-
-Of course, despite the term, it's not limited to statements, but also `query`s works the same. "Statement" is just used in a generic sense here.
 
 #### Limiting the server to executing stored statements
 

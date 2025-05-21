@@ -11,9 +11,9 @@ auth:
   mode: HTTP
   byCredentials:
     - user: myUser1
-      password: myCoolPassword
+      hashedPassword: '$2b$12$HTzKDdUMf1tDE4fa5nLkeOwKU1kiV1jaWdO6IxLO9GSq7pwuTf4BS'
     - user: myUser2
-      hashedPassword: b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75ae2
+      hashedPassword: '$2b$12$Xo7tQh0BDzDAiPghc7AU1Ocx2MnGls46Ot55y4MQNtPRhK0nemyWq'
 disableWALMode: true
 readOnly: false
 scheduledTasks:

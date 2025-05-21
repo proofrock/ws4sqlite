@@ -18,15 +18,13 @@ Going back to these snippets of [the configuration file](configuration-file.md):
 
 The `auth`nodes represent the structure that instructs ws4sql to protect that db with authentication.
 
-{% hint style="info" %}
-If a database is protected with auth and the client provides wrong credentials, or doesn't provide any, the HTTP answer will be `401 Unauthorised`.
-{% endhint %}
+> ℹ️ If a database is protected with auth and the client provides wrong credentials, or doesn't provide any, the HTTP answer will be `401 Unauthorised` or the custom code specified in `customErrorCode` (see above).
 
 ### On the server
 
 #### Authentication `mode`
 
-_Lines 3, 12; string; mandatory_
+_Lines 3, 9; string; mandatory_
 
 The first, common parameter is `mode`, that indicates the means that the client is required to use to authenticate. It can be:
 
@@ -37,31 +35,31 @@ The first, common parameter is `mode`, that indicates the means that the client 
 
 _Line 4; number_
 
-If this parameter is not specified, an authentication error will return the standard `401 Not Authorized`. Often a
-browser will react to this by displaying a standard authentication dialog; if this is not desired (because the auth has
-a custom implementation, for example) it may be needed to specify an alternative error code. The `customErrorCode`
-configuration allows to do exactly this.
+If this parameter is not specified, an authentication error will return the standard `401 Not Authorized`. 
+
+Often a browser will react to this by displaying a standard authentication dialog; if this is not desired 
+(because the auth has a custom implementation, for example) it may be needed to specify an alternative error code. 
+The `customErrorCode` configuration allows to do exactly this.
 
 #### Specifying the credentials
 
-_Lines 5-9, 13; object; mandatory_
+_Lines 5-7, 13; object; mandatory_
 
 You can see that there are two methods to configure the resolution of the credentials on the server:
 
 * Provide a query that will be executed in the database, as in Line 13.\
   \
   The query SQL must contain two placeholders, `:user` and `:password`, that will be replaced by the server with the username and password provided by the client.\
+  If DuckDB is being used, the placeholders will be `$user` and `$password`.\
   \
   If the query returns at least one result, the credentials are valid; if it returns 0 records, access will be denied.\\
-* Provide a set of credentials in the config file itself, as in Lines 6-9.\
+* Provide a set of credentials in the config file itself, as in Lines 6-7.\
   \
-  You can specify the password as a BCrypt hash. See [below](authentication.md#generating-the-token) to learn how to hash passwords.
+  The password is to be provided as a BCrypt hash. See [below](authentication.md#generating-the-token) to learn how to hash passwords.
 
 The `auth` block is not mandatory. If provided, the database will be protected with it; if omitted, no authentication is requested. If you provide one, it will be ignored.
 
-{% hint style="danger" %}
-The password are passed in cleartext, so it is better to be on a protected connection like HTTPS (e.g. by using a reverse proxy). See the [security](../security.md#authentication) page for further information.
-{% endhint %}
+> ⚠️ A client sends the credentials to ws4sql in plaintext, so it is better to be on a protected connection like HTTPS (e.g. by using a reverse proxy). See the [security](../security.md#authentication) page for further information.
 
 #### Generating hashes
 
@@ -97,3 +95,5 @@ When a database is protected with authentication in [`INLINE` mode](authenticati
 ```
 
 If the token verification fails, the response will be returned after 1 second, to prevent brute forcing. The wait time is per database: different failed requests for the same database will "stack", while different databases will work concurrently.
+
+> ⚠️ Again, really: a client sends the credentials to ws4sql in plaintext, so it is better to be on a protected connection like HTTPS (e.g. by using a reverse proxy). See the [security](../security.md#authentication) page for further information.

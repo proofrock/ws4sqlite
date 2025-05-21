@@ -13,9 +13,7 @@ The client can do this in one of two ways:
 * Using the standard HTTP Basic Authentication; or
 * Inserting the credentials in the request JSON.
 
-{% hint style="danger" %}
-Beware that the password is sent in plaintext; if you are serving a database on an unprotected connection, it could be snooped. Consider providing HTTPS with a reverse proxy.
-{% endhint %}
+> ⚠️ Beware that the password is sent by the client in plaintext; if you are serving a database on an unprotected connection, it could be snooped. It's strongly advised to provide HTTPS with a reverse proxy.
 
 On the server, the set of valid credentials can be configured in two ways:
 
