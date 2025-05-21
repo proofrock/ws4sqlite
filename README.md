@@ -107,15 +107,15 @@ Let's meet on [Discord](https://discord.gg/nBCcq2VQPu)!
 
 Many thanks and all the credits to these awesome projects:
 
-- [lnquy's cron](https://github.com/lnquy/cron) (MIT License);
-- [robfig's cron](https://github.com/robfig/cron) (MIT License);
-- [gofiber's fiber](https://github.com/gofiber/fiber) (MIT License);
-- [klauspost's compress](https://github.com/klauspost/compress) (3-Clause BSD license);
-- [mitchellh's go-homedir](https://github.com/mitchellh/go-homedir) (MIT License);
-- [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
-- [modernc.org's go-duckdb](https://github.com/marcboeker/go-duckdb) (MIT License);
-- [wI2L's jettison](https://github.com/wI2L/jettison) (MIT License)
-- and of course, [Google Go](https://go.dev).
+* [lnquy's cron](https://github.com/lnquy/cron) (MIT License);
+* [robfig's cron](https://github.com/robfig/cron) (MIT License);
+* [gofiber's fiber](https://github.com/robfig/cron) (MIT License);
+* [marcboeker's go-duckdb](https://github.com/marcboeker/go-duckdb) (MIT License);
+* [mitchellh's go-homedir](https://github.com/mitchellh/go-homedir) (MIT License);
+* [mattn's go-sqlite3](https://github.com/mattn/go-sqlite3) (MIT License);
+* [wI2L's jettison](https://github.com/wI2L/jettison) (MIT License)
+* [iancoleman's orderedmap](https://github.com/iancoleman/orderedmap) (MIT License);
+* and of course, [Google Go](https://go.dev).
 
 Kindly supported by [JetBrains for Open Source development](https://jb.gg/OpenSourceSupport)
 

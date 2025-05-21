@@ -19,7 +19,7 @@ Beware that the password is sent in plaintext; if you are serving a database on 
 
 On the server, the set of valid credentials can be configured in two ways:
 
-* Defining a list of credentials in the configuration file (the password can be plaintext or hashed);
+* Defining a list of credentials in the configuration file (the password is to be provided as a BCrypt hash);
 * Defining a SQL query that authenticates them, probably against a table in the database itself.
 
 This mechanism is designed to be flexible and effective. Of course, a password is only safe if it's kept secret, so if you connect from a web app, it can't be hard-coded in the javascript. A better approach would be to ask for it to the user.

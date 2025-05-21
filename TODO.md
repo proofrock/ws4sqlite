@@ -1,3 +1,1 @@
-- Remove deprecated `maintenance` block
-- Remove plain text password + documentation
 - Document BCrypt password

@@ -8,10 +8,8 @@ Going back to these snippets of [the configuration file](configuration-file.md):
       mode: HTTP
       customErrorCode: 499
       byCredentials:
-        - user: myUser1
-          password: myCoolPassword
-        - user: myUser2
-          hashedPassword: b133a0c0e9bee3be20163d2ad31d6248db292aa6dcb1ee087a2aa50e0fc75a[e2
+        - user: myUser
+          hashedPassword: "$2b$12$Xo7tQh0BDzDAiPghc7AU1Ocx2MnGls46Ot55y4MQNtPRhK0nemyWq"
  [...]
     auth:
       mode: INLINE
@@ -57,7 +55,7 @@ You can see that there are two methods to configure the resolution of the creden
   If the query returns at least one result, the credentials are valid; if it returns 0 records, access will be denied.\\
 * Provide a set of credentials in the config file itself, as in Lines 6-9.\
   \
-  You can specify the password as plain text (ensure that the file is not world-readable...) or as SHA-256 hashes. See [below](authentication.md#generating-the-token) to learn how to hash passwords.
+  You can specify the password as a BCrypt hash. See [below](authentication.md#generating-the-token) to learn how to hash passwords.
 
 The `auth` block is not mandatory. If provided, the database will be protected with it; if omitted, no authentication is requested. If you provide one, it will be ignored.
 
@@ -67,17 +65,23 @@ The password are passed in cleartext, so it is better to be on a protected conne
 
 #### Generating hashes
 
-{% hint style="warning" %}
-Be careful not to include any whitespace in the text to hash, including any carriage return. If using `echo` it's better to specify the `-n` flag.
-{% endhint %}
+> ℹ️ When including the hash in the YAML, be aware that there may be characters to escape. Best thing is to use single quotes around the string.
 
-In order to generate hashes for the password, you can use an online service like [this](https://emn178.github.io/online-tools/sha256.html), but it's better not to trust anything online. In Linux or MacOS you can instead use this one-liner:
+You can:
+
+- Use a website, google for it. Usually these sites send the secret to their servers, so you shouldn’t use them for "production" secrets.
+
+- Use htpasswd from apache-utils (or the relevant package for your distribution). Run the following commandand remove the initial : from the result.
 
 ```bash
-read -p Key: -rs ws4s_token && echo && echo -n $ws4s_token | shasum -a 256 -|head -c 64 && echo && ws4s_token=
+htpasswd -nbBC 10 "" mysecret
 ```
 
-This will read a string from the stdin without echoing it, and outputs the hash to use.
+- Use docker and the caddy image, with the following commandline.
+
+```bash
+docker run --rm caddy caddy hash-password -p 'mysecret'
+```
 
 ### Credentials in the request (`INLINE` mode)
 

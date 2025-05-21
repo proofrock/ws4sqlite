@@ -30,10 +30,8 @@ auth:
   byQuery: SELECT 1 FROM AUTH WHERE USER = :user AND PASSWORD = :password
   # Credentials can be multiple, with different <user>, and the password may be BCrypt or cleartext
   byCredentials:                  
-    - user: myUser1
-      password: myCoolPassword
-    - user: myUser2
-      hashedPassword: b133...     # BCrypt hash of the password
+    - user: myUser
+      hashedPassword: "$2b$12$.." # BCrypt hash of the password
 schedTasks:                       # Multiple tasks are possible
   - schedule: "0 0 * * *"         # Cron format without seconds (m h d m wd)
     atStartup: false              # This (as true) or schedule must be present
