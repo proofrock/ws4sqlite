@@ -1,3 +1,5 @@
+> **This page is not yet updated**
+
 # ❓ Requests
 
 A request is a JSON structure that is passed via a POST HTTP call to ws4sqlite, using the port specified when [running](running.md#port) the server application.

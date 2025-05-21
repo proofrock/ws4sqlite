@@ -1,3 +1,5 @@
+> **This page is not yet updated**
+
 # 📃 Configuration File
 
 The configuration files are a set of companion files for each databases. They can be absent, and the database will take default values; if they are present, they indicate the parameters with which ws4sql must "treat" the database.

@@ -1,3 +1,5 @@
+> **This page needs updates** to add Cloudflare Tunnels
+
 # ⚙ Reverse Proxy
 
 Running a reverse proxy in front of ws4sql is almost mandatory if you want to expose it on the internet. More than that, there are a number of reverse proxies that allow you to protect a http connection with https, using a free certificate provided for example by [Let's Encrypt](https://letsencrypt.org) or similar.

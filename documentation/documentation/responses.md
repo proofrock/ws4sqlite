@@ -1,3 +1,5 @@
+> **This page is not yet updated**
+
 # ❗ Responses
 
 If you followed all of the chapters until now, in particular if you used[ the config file](configuration-file.md) when starting ws4sql and submitted the [request](requests.md), you'll get the following response. Just as the request was "complete", this response illustrates all the necessary concepts.
