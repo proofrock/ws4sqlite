@@ -38,11 +38,9 @@ type ScheduledTask struct {
 
 type CredentialsCfg struct {
 	User           string `yaml:"user"`
-	Password       string `yaml:"password"`
 	HashedPassword string `yaml:"hashedPassword"`
-	// This is a cache: it's the Password if specified in cleartext, or
-	// gets populated with the cleartext password when the hashed one is
-	// checked.
+	// This is a cache: it gets populated with the cleartext
+	// password when the hashed one is checked.
 	ClearTextPassword atomic.Value
 }
 

@@ -6,16 +6,25 @@ The version in this branch is a work in progress to add features and (unfortunat
 
 ## Changes
 
+### Breaking changes
+
+- When running the app, the config files must be specified on the command line, the file paths cannot be used anymore (there). This is described in the "Migration" section below. The file path is in the config file.
+  - The only exception is a "simple case" to serve a file path without any config. This can be done with the new `--quick-db` parameter.
+- Hashed passwords in auth config must now be hashed with BCrypt, not SHA256.
+- Plain text passwords are not permitted anymore, in auth config.
+
+### Major features
+
 - SQLite is embedded via [mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) and CGO. Should be way faster.
 - Support for DuckDB (see below).
-- [**BREAKING CHANGE**] When running the app, the config files must be specified on the command line, the file paths cannot be used anymore (there). This is described in the "Migration" section below. The file path is in the config file.
-  - The only exception is a "simple case" to serve a file path without any config. This can be done with the new `--quick-db` parameter.
-- [**BREAKING CHANGE**] Hashed passwords in auth config must now be hashed with BCrypt, not SHA256.
-- Fail fast if the request is empty, don't even attempt to authenticate.
 - Target platforms (because of CGO) are now 4 (`win/amd64`, `macos/arm64`, `linux/amd64`, `linux/arm64`).
   - For Docker, `linux/amd64` and `linux/arm64`.
 - Docker images are now based on `distroless/static-debian12`.
 - Docker images are now hosted on Github's Container Registry.
+
+### Minor changes
+
+- Fail fast if the request is empty, don't even attempt to authenticate.
 
 ## Migration
 
@@ -31,7 +40,8 @@ database:
   readOnly: false       # Same as before, but moved here.
 ```
 
-- For any hashed password previously specified in an `auth` block, the hash must be BCrypt, not SHA256.
+- For any hashed password (`HashedPassword = ...`) previously specified in an `auth` block, the hash must be BCrypt, not SHA256.
+- For any plain text password (`Password = ...`), convert  in `HashedPassword`, also using BCrypt.
 
 ## Specific to DuckDB
 

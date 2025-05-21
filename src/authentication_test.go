@@ -55,8 +55,8 @@ func TestSetupAuthCreds(t *testing.T) {
 					Mode: "INLINE",
 					ByCredentials: []structs.CredentialsCfg{
 						{
-							User:     "pietro",
-							Password: "hey",
+							User:           "pietro",
+							HashedPassword: "$2b$12$Xo7tQh0BDzDAiPghc7AU1Ocx2MnGls46Ot55y4MQNtPRhK0nemyWq", // "hey"
 						},
 						{
 							User:           "paolo",
@@ -348,8 +348,8 @@ func TestBASetupAuthCreds(t *testing.T) {
 					Mode: "HTTP",
 					ByCredentials: []structs.CredentialsCfg{
 						{
-							User:     "pietro",
-							Password: "hey",
+							User:           "pietro",
+							HashedPassword: "$2b$12$Xo7tQh0BDzDAiPghc7AU1Ocx2MnGls46Ot55y4MQNtPRhK0nemyWq", // "hey"
 						},
 						{
 							User:           "paolo",
@@ -580,8 +580,8 @@ func TestCustomCodeSetup(t *testing.T) {
 					CustomErrorCode: &errCode,
 					ByCredentials: []structs.CredentialsCfg{
 						{
-							User:     "pietro",
-							Password: "hey",
+							User:           "pietro",
+							HashedPassword: "$2b$12$Xo7tQh0BDzDAiPghc7AU1Ocx2MnGls46Ot55y4MQNtPRhK0nemyWq", // "hey"
 						},
 						{
 							User:           "paolo",

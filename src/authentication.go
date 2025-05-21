@@ -119,16 +119,6 @@ func parseAuth(db *structs.Db) {
 			if cred.User == "" {
 				mllog.Fatal("no user for credential")
 			}
-			if (cred.HashedPassword == "") == (cred.Password == "") {
-				mllog.Fatal("one and only one of 'password' and 'hashedPassword' must be specified")
-			}
-			// Populates the cleartext password cache, so that there is only one
-			// point where the password is stored in clear text.
-			// If the password is specified as a BCrypt hash, it will be cached
-			// when the BCrypt "puzzle" is solved for the first time.
-			if cred.Password != "" {
-				cred.ClearTextPassword.Store([]byte(cred.Password))
-			}
 		}
 		mllog.StdOutf("  + Authentication enabled, with %d credentials", len(auth.ByCredentials))
 	}
