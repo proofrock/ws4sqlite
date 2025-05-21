@@ -447,12 +447,10 @@ func TestResultSetOrder(t *testing.T) {
 	}
 }
 
-var listResults string = "list"
-
 func TestListResultSet(t *testing.T) {
 	// See this issue for more context: https://github.com/proofrock/sqliterg/issues/5
 	req := structs.Request{
-		ResultFormat: &listResults,
+		ResultFormat: utils.Ptr("LIST"),
 		Transaction: []structs.RequestItem{
 			{
 				Statement: "CREATE TABLE table_with_many_columns (d INT, c INT, b INT, a INT)",

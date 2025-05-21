@@ -71,7 +71,6 @@ type Db struct {
 	Auth                    *Auth             `yaml:"auth"`
 	CORSOrigin              string            `yaml:"corsOrigin"`
 	UseOnlyStoredStatements bool              `yaml:"useOnlyStoredStatements"`
-	Maintenance             *ScheduledTask    `yaml:"maintenance"`
 	ScheduledTasks          []ScheduledTask   `yaml:"scheduledTasks"`
 	StoredStatement         []StoredStatement `yaml:"storedStatements"`
 	InitStatements          []string          `yaml:"initStatements"`

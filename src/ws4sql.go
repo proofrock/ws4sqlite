@@ -203,13 +203,6 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 
 		// Parsing of the scheduled tasks
 		// FIXME Fail if readonly?
-		if database.Maintenance != nil && len(database.ScheduledTasks) > 0 {
-			mllog.Fatalf("in %s: it's not possible to use both old maintenance and new scheduledTasks together. Move the maintenance task in the latter.", dbId)
-			return
-		} else if database.Maintenance != nil {
-			mllog.Warnf("in %s: \"maintenance\" node is deprecated, move it to \"scheduledTasks\"", dbId)
-			database.ScheduledTasks = []structs.ScheduledTask{*database.Maintenance}
-		}
 		if len(database.ScheduledTasks) > 0 {
 			parseTasks(&database)
 		}
@@ -230,7 +223,7 @@ func launch(cfg structs.Config, disableKeepAlive4Tests bool) {
 
 	mllog.WhenFatal = origWhenFatal
 
-	// Now all the maintenance plans for all the databases are parsed, so let's start the cron engine
+	// Now all the ScheduledTask[] plans for all the databases are parsed, so let's start the cron engine
 	startTasks()
 
 	// Register the handler

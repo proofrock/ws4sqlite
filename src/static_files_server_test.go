@@ -23,14 +23,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/proofrock/ws4sql/structs"
+	"github.com/proofrock/ws4sql/utils"
 )
 
 func TestFileServer(t *testing.T) {
-	serveDir := "../test/"
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
-		ServeDir: &serveDir,
+		ServeDir: utils.Ptr("../test/"),
 	}
 	go launch(cfg, true)
 	time.Sleep(time.Second)
@@ -53,11 +53,10 @@ func TestFileServer(t *testing.T) {
 }
 
 func TestFileServerKO(t *testing.T) {
-	serveDir := "../test/"
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
-		ServeDir: &serveDir,
+		ServeDir: utils.Ptr("../test/"),
 	}
 	go launch(cfg, true)
 	time.Sleep(time.Second)
@@ -80,11 +79,10 @@ func TestFileServerKO(t *testing.T) {
 }
 
 func TestFileServerWithOverlap(t *testing.T) {
-	serveDir := "../test/"
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
-		ServeDir: &serveDir,
+		ServeDir: utils.Ptr("../test/"),
 	}
 	go launch(cfg, true)
 	time.Sleep(time.Second)

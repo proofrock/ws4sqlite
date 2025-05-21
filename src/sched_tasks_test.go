@@ -28,14 +28,11 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// The post-0.14 "scheduledTasks" structure is only actually tested in TestAtStartupMultiple, but the contents of the
-// "maintenance" structure are copied to it anyway so the old tests for "maintenance" should suffice for the new one too
-
 func cleanSchedTasksFiles(cfg structs.Config) {
 	for i := range cfg.Databases {
 		os.Remove(*cfg.Databases[i].DatabaseDef.Path)
-		bkpDir, bkpFile := filepath.Dir(cfg.Databases[i].Maintenance.BackupTemplate),
-			filepath.Base(cfg.Databases[i].Maintenance.BackupTemplate)
+		bkpDir, bkpFile := filepath.Dir(cfg.Databases[i].ScheduledTasks[0].BackupTemplate),
+			filepath.Base(cfg.Databases[i].ScheduledTasks[0].BackupTemplate)
 		list, _ := filepath.Glob(fmt.Sprintf(filepath.Join(bkpDir, bkpFile), bkpTimeGlob))
 		for i := range list {
 			os.Remove(list[i])
@@ -58,8 +55,6 @@ func TestSchedTasks(t *testing.T) {
 	defer os.Remove("../test/test2.db")
 	defer Shutdown()
 
-	sched := "* * * * *"
-
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
@@ -70,12 +65,14 @@ func TestSchedTasks(t *testing.T) {
 					Path:           utils.Ptr("../test/test1.db"),
 					DisableWALMode: utils.Ptr(true), // generate only ".db" files
 				},
-				Maintenance: &structs.ScheduledTask{
-					Schedule:       &sched,
-					DoVacuum:       false,
-					DoBackup:       true,
-					BackupTemplate: "../test/test1_%s.db",
-					NumFiles:       1,
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						Schedule:       utils.Ptr("* * * * *"),
+						DoVacuum:       false,
+						DoBackup:       true,
+						BackupTemplate: "../test/test1_%s.db",
+						NumFiles:       1,
+					},
 				},
 			}, {
 				DatabaseDef: structs.DatabaseDef{
@@ -83,12 +80,14 @@ func TestSchedTasks(t *testing.T) {
 					Path:           utils.Ptr("../test/test2.db"),
 					DisableWALMode: utils.Ptr(true), // generate only ".db" files
 				},
-				Maintenance: &structs.ScheduledTask{
-					Schedule:       &sched,
-					DoVacuum:       false,
-					DoBackup:       true,
-					BackupTemplate: "../test/test2_%s.db",
-					NumFiles:       1,
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						Schedule:       utils.Ptr("* * * * *"),
+						DoVacuum:       false,
+						DoBackup:       true,
+						BackupTemplate: "../test/test2_%s.db",
+						NumFiles:       1,
+					},
 				},
 			},
 		},
@@ -122,8 +121,8 @@ func TestSchedTasks(t *testing.T) {
 	time.Sleep(time.Minute)
 
 	now := time.Now().Format(bkpTimeFormat)
-	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
-	bk2 := fmt.Sprintf(cfg.Databases[1].Maintenance.BackupTemplate, now)
+	bk1 := fmt.Sprintf(cfg.Databases[0].ScheduledTasks[0].BackupTemplate, now)
+	bk2 := fmt.Sprintf(cfg.Databases[1].ScheduledTasks[0].BackupTemplate, now)
 
 	if !utils.FileExists(bk1) || !utils.FileExists(bk2) {
 		t.Error("backup file not created")
@@ -140,8 +139,8 @@ func TestSchedTasks(t *testing.T) {
 	time.Sleep(time.Minute)
 
 	now = time.Now().Format(bkpTimeFormat)
-	bk3 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
-	bk4 := fmt.Sprintf(cfg.Databases[1].Maintenance.BackupTemplate, now)
+	bk3 := fmt.Sprintf(cfg.Databases[0].ScheduledTasks[0].BackupTemplate, now)
+	bk4 := fmt.Sprintf(cfg.Databases[1].ScheduledTasks[0].BackupTemplate, now)
 
 	if !utils.FileExists(bk3) || !utils.FileExists(bk4) {
 		t.Error("backup file not created, the second time")
@@ -162,8 +161,6 @@ func TestDDBSchedTasks(t *testing.T) {
 	defer os.Remove("../test/test2.zip")
 	defer Shutdown()
 
-	sched := "* * * * *"
-
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
@@ -174,12 +171,14 @@ func TestDDBSchedTasks(t *testing.T) {
 					Id:   utils.Ptr("test1"),
 					Path: utils.Ptr("../test/test1.db"),
 				},
-				Maintenance: &structs.ScheduledTask{
-					Schedule:       &sched,
-					DoVacuum:       false,
-					DoBackup:       true,
-					BackupTemplate: "../test/test1_%s.zip",
-					NumFiles:       1,
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						Schedule:       utils.Ptr("* * * * *"),
+						DoVacuum:       false,
+						DoBackup:       true,
+						BackupTemplate: "../test/test1_%s.db",
+						NumFiles:       1,
+					},
 				},
 			}, {
 				DatabaseDef: structs.DatabaseDef{
@@ -187,12 +186,14 @@ func TestDDBSchedTasks(t *testing.T) {
 					Id:   utils.Ptr("test2"),
 					Path: utils.Ptr("../test/test2.db"),
 				},
-				Maintenance: &structs.ScheduledTask{
-					Schedule:       &sched,
-					DoVacuum:       false,
-					DoBackup:       true,
-					BackupTemplate: "../test/test2_%s.zip",
-					NumFiles:       1,
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						Schedule:       utils.Ptr("* * * * *"),
+						DoVacuum:       false,
+						DoBackup:       true,
+						BackupTemplate: "../test/test2_%s.db",
+						NumFiles:       1,
+					},
 				},
 			},
 		},
@@ -226,8 +227,8 @@ func TestDDBSchedTasks(t *testing.T) {
 	time.Sleep(time.Minute)
 
 	now := time.Now().Format(bkpTimeFormat)
-	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
-	bk2 := fmt.Sprintf(cfg.Databases[1].Maintenance.BackupTemplate, now)
+	bk1 := fmt.Sprintf(cfg.Databases[0].ScheduledTasks[0].BackupTemplate, now)
+	bk2 := fmt.Sprintf(cfg.Databases[1].ScheduledTasks[0].BackupTemplate, now)
 
 	if !utils.FileExists(bk1) || !utils.FileExists(bk2) {
 		t.Error("backup file not created")
@@ -244,8 +245,8 @@ func TestDDBSchedTasks(t *testing.T) {
 	time.Sleep(time.Minute)
 
 	now = time.Now().Format(bkpTimeFormat)
-	bk3 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
-	bk4 := fmt.Sprintf(cfg.Databases[1].Maintenance.BackupTemplate, now)
+	bk3 := fmt.Sprintf(cfg.Databases[0].ScheduledTasks[0].BackupTemplate, now)
+	bk4 := fmt.Sprintf(cfg.Databases[1].ScheduledTasks[0].BackupTemplate, now)
 
 	if !utils.FileExists(bk3) || !utils.FileExists(bk4) {
 		t.Error("backup file not created, the second time")
@@ -265,8 +266,6 @@ func TestSchedTasksWithReadOnly(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 
-	sched := "* * * * *"
-
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
@@ -278,12 +277,14 @@ func TestSchedTasksWithReadOnly(t *testing.T) {
 					DisableWALMode: utils.Ptr(true), // generate only ".db" files
 					ReadOnly:       true,
 				},
-				Maintenance: &structs.ScheduledTask{
-					Schedule:       &sched,
-					DoVacuum:       false,
-					DoBackup:       true,
-					BackupTemplate: "../test/test_%s.db",
-					NumFiles:       1,
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						Schedule:       utils.Ptr("* * * * *"),
+						DoVacuum:       false,
+						DoBackup:       true,
+						BackupTemplate: "../test/test_%s.db",
+						NumFiles:       1,
+					},
 				},
 			},
 		},
@@ -297,7 +298,7 @@ func TestSchedTasksWithReadOnly(t *testing.T) {
 	time.Sleep(time.Minute)
 
 	now := time.Now().Format(bkpTimeFormat)
-	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
+	bk1 := fmt.Sprintf(cfg.Databases[0].ScheduledTasks[0].BackupTemplate, now)
 
 	if !utils.FileExists(bk1) {
 		t.Error("backup file not created")
@@ -310,8 +311,6 @@ func TestSchedTasksWithStatement(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 
-	sched := "* * * * *"
-
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
@@ -322,11 +321,13 @@ func TestSchedTasksWithStatement(t *testing.T) {
 					Path:           utils.Ptr("../test/test.db"),
 					DisableWALMode: utils.Ptr(true), // generate only ".db" files
 				},
-				Maintenance: &structs.ScheduledTask{
-					Schedule:   &sched,
-					DoVacuum:   false,
-					DoBackup:   false,
-					Statements: []string{"INSERT INTO tbl VALUES (17)"},
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						Schedule:   utils.Ptr("* * * * *"),
+						DoVacuum:   false,
+						DoBackup:   false,
+						Statements: []string{"INSERT INTO tbl VALUES (17)"},
+					},
 				},
 				InitStatements: []string{"CREATE TABLE tbl (num INTEGER)"},
 			},
@@ -360,8 +361,6 @@ func TestAtStartup(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
 
-	t_r_u_e := true
-
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
 		Port:     12321,
@@ -372,12 +371,14 @@ func TestAtStartup(t *testing.T) {
 					Path:           utils.Ptr("../test/test.db"),
 					DisableWALMode: utils.Ptr(true), // generate only ".db" files
 				},
-				Maintenance: &structs.ScheduledTask{
-					AtStartup:      &t_r_u_e,
-					DoVacuum:       false,
-					DoBackup:       true,
-					BackupTemplate: "../test/test_%s.db",
-					NumFiles:       1,
+				ScheduledTasks: []structs.ScheduledTask{
+					structs.ScheduledTask{
+						AtStartup:      utils.Ptr(true),
+						DoVacuum:       false,
+						DoBackup:       true,
+						BackupTemplate: "../test/test_%s.db",
+						NumFiles:       1,
+					},
 				},
 			},
 		},
@@ -391,7 +392,7 @@ func TestAtStartup(t *testing.T) {
 
 	time.Sleep(3 * time.Second)
 
-	bk1 := fmt.Sprintf(cfg.Databases[0].Maintenance.BackupTemplate, now)
+	bk1 := fmt.Sprintf(cfg.Databases[0].ScheduledTasks[0].BackupTemplate, now)
 
 	if !utils.FileExists(bk1) {
 		t.Error("backup file not created")
@@ -402,8 +403,6 @@ func TestAtStartup(t *testing.T) {
 func TestAtStartupMultiple(t *testing.T) {
 	defer os.Remove("../test/test.db")
 	defer Shutdown()
-
-	t_r_u_e := true
 
 	cfg := structs.Config{
 		Bindhost: "0.0.0.0",
@@ -420,12 +419,12 @@ func TestAtStartupMultiple(t *testing.T) {
 				},
 				ScheduledTasks: []structs.ScheduledTask{
 					{
-						AtStartup:  &t_r_u_e,
+						AtStartup:  utils.Ptr(true),
 						DoVacuum:   false,
 						DoBackup:   false,
 						Statements: []string{"INSERT INTO TMP VALUES (1)"},
 					}, {
-						AtStartup:  &t_r_u_e,
+						AtStartup:  utils.Ptr(true),
 						DoVacuum:   false,
 						DoBackup:   false,
 						Statements: []string{"INSERT INTO TMP VALUES (2)"},

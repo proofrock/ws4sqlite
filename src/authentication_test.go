@@ -561,8 +561,6 @@ func TestCustomCodeSetup(t *testing.T) {
 	os.Remove("../test/test1.db")
 	os.Remove("../test/test2.db")
 
-	errCode := 444
-
 	// test1 has structs.Credentials, test2 uses an auth query
 	// init statements are also tested here
 	cfg := structs.Config{
@@ -577,7 +575,7 @@ func TestCustomCodeSetup(t *testing.T) {
 				},
 				Auth: &structs.Auth{
 					Mode:            "HTTP",
-					CustomErrorCode: &errCode,
+					CustomErrorCode: utils.Ptr(444),
 					ByCredentials: []structs.CredentialsCfg{
 						{
 							User:           "pietro",
@@ -602,7 +600,7 @@ func TestCustomCodeSetup(t *testing.T) {
 				},
 				Auth: &structs.Auth{
 					Mode:            "inline", // check if case insensitive
-					CustomErrorCode: &errCode,
+					CustomErrorCode: utils.Ptr(444),
 					ByQuery:         "SELECT 1 FROM AUTH WHERE USER = :user AND PASS = :password",
 				},
 			},
