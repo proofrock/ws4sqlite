@@ -224,7 +224,7 @@ Request:
 
 The last capability we'll cover is using parameters, either in a statement (e.g. an `INSERT`) or in a query. They are specified using named placeholders, like the following.
 
-> ℹ️ The actual syntax for named parameters may be different for SQLite and DuckDB. `ws4sql` uses the "native" syntax of the database. Here SQLite's syntax is used.
+> ℹ️ The actual syntax for named parameters may be different for SQLite and DuckDB. `ws4sql` uses the "native" syntax of the database. Here SQLite's syntax is used; DuckDB wants `$something` instead of `:something`.
 
 ```json
 {

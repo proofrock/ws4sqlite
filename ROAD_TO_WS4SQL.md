@@ -19,7 +19,7 @@ The version in this branch is a work in progress to add features and (unfortunat
 
 ## Migration
 
-- For any `--db` and `--mem-db` switch that was used, an explicit YAML config file must be created. The format is the same, but there is a new section at the beginning:
+- For any `--db` switch that was used, an explicit YAML config file must be created. The format is the same, but there is a new section at the beginning:
 
 ```yaml
 database:
