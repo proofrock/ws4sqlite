@@ -10,7 +10,7 @@ To compile this prerequisite, set up an Alpine Linux (edge), for example in dock
 # /home/mano/tmp/alpine/destroy --remove
 
 apk add --no-cache findutils musl-dev go g++ git make cmake ninja openssl openssl-dev openssl-libs-static python3 zstd
-git clone -b "v1.2.2" https://github.com/duckdb/duckdb
+git clone -b "v1.3.2" https://github.com/duckdb/duckdb
 cd duckdb
 CFLAGS="-O2" CXXFLAGS="-O2" \
  DUCKDB_PLATFORM=linux \
