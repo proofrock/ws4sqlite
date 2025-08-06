@@ -1,8 +1,6 @@
 # 🌱 ws4sqlite
 
-> _A bit of status report. The `ws4sql` [fork](https://github.com/proofrock/ws4sqlite/tree/fork/ws4sql) (to integrate `duckdb` alongside `sqlite`) is unfortunately stuck, because I cannot get the new 1.2.0 duckdb version to compile statically as the old version used to. Also unfortunately, in the last year or so my time is severely limited, and I am not able to dedicate personal resources to this project. So any hiccup (as the one I described) becomes a major showstopper. 😒 I am sorry about the situation, I will continue maintaining this branch and attempting to go on with the other, too._
-
-> _If you find this project useful, and can help, please let me know. I could use some help right now 😊._
+> _A bit of status report. The `ws4sql` [fork](https://github.com/proofrock/ws4sqlite/tree/fork/ws4sql) (to integrate `duckdb` alongside `sqlite`) is back on track, hopefully to be released "as soon as" the documentation is in good shape._
 
 **`ws4sqlite`** is a server application that, applied to one or more sqlite files, allows to perform SQL queries and statements on them via REST (or better, JSON over HTTP).
 
@@ -58,7 +56,7 @@ Obtaining an answer of
 
 [Docs](https://germ.gitbook.io/ws4sqlite/), a [Tutorial](https://germ.gitbook.io/ws4sqlite/tutorial), a [Discord](https://discord.gg/nBCcq2VQPu).
 
-- Aligned to [**SQLite 3.49.1**](https://sqlite.org/releaselog/3_49_1.html);
+- Aligned to [**SQLite 3.50.3**](https://sqlite.org/releaselog/3_50_3.html);
 - A [**single executable file**](https://germ.gitbook.io/ws4sqlite/documentation/installation) (written in Go);
 - HTTP/JSON access, with [**client libraries**](https://germ.gitbook.io/ws4sqlite/client-libraries) for convenience;
 - Directly call `ws4sqlite` on a database (as above), many options available using a YAML companion file;
