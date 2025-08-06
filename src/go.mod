@@ -2,7 +2,7 @@ module github.com/proofrock/ws4sqlite
 
 go 1.24.0
 
-toolchain go1.24.2
+toolchain go1.24.5
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.9
