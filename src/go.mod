@@ -8,7 +8,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/iancoleman/orderedmap v0.3.0
 	github.com/lnquy/cron v1.1.1
-	github.com/marcboeker/go-duckdb/v2 v2.3.3
+	github.com/marcboeker/go-duckdb/v2 v2.3.4
 	github.com/mattn/go-sqlite3 v1.14.30
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/proofrock/go-mylittlelogger v0.4.0
