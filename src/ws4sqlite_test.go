@@ -1564,3 +1564,98 @@ func TestFileServerWithOverlap(t *testing.T) {
 
 	Shutdown()
 }
+
+func TestUnicodeDatabaseName(t *testing.T) {
+	// Test for Issue #57: Unicode database names should work properly
+	os.Remove("../test/数据库.db")
+
+	cfg := config{
+		Bindhost: "0.0.0.0",
+		Port:     12321,
+		Databases: []db{
+			{
+				Id:   "数据库",
+				Path: "../test/数据库.db",
+			},
+		},
+	}
+	go launch(cfg, true)
+
+	time.Sleep(time.Second)
+
+	if !fileExists("../test/数据库.db") {
+		t.Error("Unicode db file not created")
+		return
+	}
+
+	// Create a table
+	req := request{
+		Transaction: []requestItem{
+			{
+				Statement: "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)",
+			},
+		},
+	}
+
+	code, _, res := call("数据库", req, t)
+
+	if code != 200 {
+		t.Error("Create table failed with code", code)
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("Create table did not succeed")
+		return
+	}
+
+	// Insert data
+	req = request{
+		Transaction: []requestItem{
+			{
+				Statement: "INSERT INTO test (name) VALUES ('test data')",
+			},
+		},
+	}
+
+	code, _, res = call("数据库", req, t)
+
+	if code != 200 {
+		t.Error("Insert failed with code", code)
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("Insert did not succeed")
+		return
+	}
+
+	// Query data
+	req = request{
+		Transaction: []requestItem{
+			{
+				Query: "SELECT * FROM test",
+			},
+		},
+	}
+
+	code, _, res = call("数据库", req, t)
+
+	if code != 200 {
+		t.Error("Query failed with code", code)
+		return
+	}
+
+	if !res.Results[0].Success {
+		t.Error("Query did not succeed")
+		return
+	}
+
+	if len(res.Results[0].ResultSet) != 1 {
+		t.Error("Expected 1 row, got", len(res.Results[0].ResultSet))
+		return
+	}
+
+	Shutdown()
+	os.Remove("../test/数据库.db")
+}

@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -309,10 +310,16 @@ func launch(cfg config, disableKeepAlive4Tests bool) {
 
 		handlers = append(handlers, handler(db.Id))
 
-		app.Post(fmt.Sprintf("/%s", db.Id), handlers...)
+		// Fix for Issue #57: Support Unicode database names in HTTP routes
+		// URL-encode the database ID for route registration to handle Unicode characters.
+		// When clients send requests with Unicode (e.g., "数据库"), browsers/curl will
+		// URL-encode it (e.g., "%E6%95%B0%E6%8D%AE%E5%BA%93"). We must register routes
+		// with the encoded form so Fiber can match incoming requests.
+		encodedId := url.PathEscape(db.Id)
+		app.Post(fmt.Sprintf("/%s", encodedId), handlers...)
 
 		if db.CORSOrigin != "" {
-			app.Options(fmt.Sprintf("/%s", db.Id), handlers...)
+			app.Options(fmt.Sprintf("/%s", encodedId), handlers...)
 		}
 	}
 

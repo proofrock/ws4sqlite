@@ -20,6 +20,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/url"
 	"strings"
 	"time"
 
@@ -200,6 +201,18 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 		}
 
 		isListResultSet := body.ResultFormat != nil && strings.EqualFold(*body.ResultFormat, "list")
+
+		// Fix for Issue #57: URL-decode the database ID parameter.
+		// The databaseId parameter is the URL-encoded form passed from the route registration
+		// (e.g., "%E6%95%B0%E6%8D%AE%E5%BA%93"). We decode it to get the human-readable ID
+		// (e.g., "数据库") to look it up in the dbs map which stores human-readable IDs.
+		// The parameter comes in URL-encoded (e.g., "%E6%95%B0%E6%8D%AE%E5%BA%93")
+		// and must be decoded to match the human-readable ID stored in the
+		// dbs map (e.g., "数据库").
+		databaseId, err := url.PathUnescape(databaseId)
+		if err != nil {
+			return newWSErrorf(-1, fiber.StatusBadRequest, "invalid URL path encoding: %s", err.Error())
+		}
 
 		db, found := dbs[databaseId]
 		if !found {
