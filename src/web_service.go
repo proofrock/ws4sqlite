@@ -248,8 +248,6 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 		defer func() {
 			if tainted {
 				tx.Rollback()
-			} else {
-				tx.Commit()
 			}
 		}()
 
@@ -357,6 +355,15 @@ func handler(databaseId string) func(c *fiber.Ctx) error {
 		}
 
 		tainted = false
+
+		// Previously the commit ran inside a deferred func whose error was
+		// discarded, so a failed Commit (disk full, I/O error, etc.) still
+		// resulted in a 200 response claiming the transaction succeeded.
+		// Commit is now called explicitly and its error surfaces as a 500,
+		// matching the error handling used for BeginTx failures.
+		if err := tx.Commit(); err != nil {
+			return newWSError(-1, fiber.StatusInternalServerError, err.Error())
+		}
 
 		return c.Status(200).JSON(ret)
 	}
