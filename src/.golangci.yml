@@ -1,0 +1,15 @@
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      # Close()/Rollback()/Remove()/Shutdown() on cleanup/defer paths (or
+      # right before process exit), where the error isn't actionable.
+      exclude-functions:
+        - os.Remove
+        - (*database/sql.Rows).Close
+        - (*database/sql.Stmt).Close
+        - (*database/sql.Tx).Rollback
+        - (*database/sql.DB).Close
+        - (*database/sql.Conn).Close
+        - (*github.com/gofiber/fiber/v2.App).Shutdown

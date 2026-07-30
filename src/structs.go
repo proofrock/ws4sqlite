@@ -137,8 +137,8 @@ type responseItem struct {
 	RowsUpdated      *int64                  `json:"rowsUpdated,omitempty"`
 	RowsUpdatedBatch []int64                 `json:"rowsUpdatedBatch,omitempty"`
 	ResultHeaders    []string                `json:"resultHeaders,omitempty"`
-	ResultSet        []orderedmap.OrderedMap `json:"resultSet,omitnil"`     // omitnil is used by jettison
-	ResultSetList    [][]interface{}         `json:"resultSetList,omitnil"` // omitnil is used by jettison
+	ResultSet        []orderedmap.OrderedMap `json:"resultSet,omitnil"`     //nolint:staticcheck // omitnil is used by jettison
+	ResultSetList    [][]interface{}         `json:"resultSetList,omitnil"` //nolint:staticcheck // omitnil is used by jettison
 	Error            string                  `json:"error,omitempty"`
 }
 
