@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: test vet lint vulncheck check
 
 build-prepare:
 	make cleanup
@@ -60,6 +60,20 @@ zbuild-all:
 
 test:
 	cd src; go test -v -timeout 6m
+
+vet:
+	cd src; go vet ./...
+
+# one-off tool, not vendored: golangci-lint aggregates staticcheck, govet,
+# errcheck, unused, ineffassign, gosimple, gofmt/goimports and more
+lint:
+	cd src; go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run
+
+# scans go.mod/go.sum against the official Go vulnerability DB
+vulncheck:
+	cd src; go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+check: vet lint vulncheck test
 
 docker:
 	docker buildx build -f Dockerfile --no-cache -t local_ws4sqlite:latest .

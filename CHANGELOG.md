@@ -1,3 +1,10 @@
+## v0.16.6
+*2026-07-30, Venice*
+
+- SQLite 3.53.3
+- Library updates
+- Go 1.26
+
 ## v0.16.5
 *2025-08-06, Venice*
 
